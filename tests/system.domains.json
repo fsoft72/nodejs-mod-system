@@ -1,0 +1,142 @@
+{
+	"system": {
+		"base_url": "http://localhost:12000",
+		"authorization_template": "Bearer %(token)s"
+	},
+	"actions": [
+		{
+			"action": "include",
+			"filename": "../user/user.debug_login.json",
+			"exec": true
+		},
+		{
+			"action": "batch_exec",
+			"name": "switch_admin"
+		},
+		{
+			"method": "POST",
+			"url": "/api/system/admin/domain/add",
+			"params": {
+				"name": "Domain 01",
+				"code": "dom001"
+			},
+			"fields": [
+				[
+					"domain.id",
+					"id_domain"
+				]
+			]
+		},
+		{
+			"method": "POST",
+			"url": "/api/system/admin/domain/add",
+			"params": {
+				"name": "Domain 01",
+				"code": "dom001"
+			},
+			"status_code": 400
+		},
+		{
+			"method": "PATCH",
+			"url": "/api/system/admin/domain/update",
+			"params": {
+				"id": "%(id_domain)s",
+				"code": "dom001-upd"
+			}
+		},
+		{
+			"method": "POST",
+			"url": "/api/system/admin/domain/add",
+			"params": {
+				"name": "Domain 02",
+				"code": "dom002"
+			}
+		},
+		{
+			"method": "PATCH",
+			"url": "/api/system/admin/domain/update",
+			"params": {
+				"id": "%(id_domain)s",
+				"code": "dom002"
+			},
+			"status_code": 400
+		},
+		{
+			"method": "DELETE",
+			"url": "/api/system/admin/domain/del",
+			"params": {
+				"code": "dom002"
+			}
+		},
+		{
+			"method": "DELETE",
+			"url": "/api/system/admin/domain/del",
+			"params": {
+				"code": "dom002"
+			},
+			"status_code": 400
+		},
+		{
+			"method": "PATCH",
+			"url": "/api/system/admin/domain/update",
+			"params": {
+				"id": "%(id_domain)s",
+				"code": "dom002"
+			}
+		},
+		{
+			"method": "PATCH",
+			"url": "/api/system/admin/domain/update",
+			"params": {
+				"id": "%(id_domain)s",
+				"code": "dom001"
+			}
+		},
+		{
+			"method": "POST",
+			"url": "/api/system/admin/domain/add",
+			"params": {
+				"name": "Domain 02",
+				"code": "dom002",
+				"visible": false
+			}
+		},
+		{
+			"method": "GET",
+			"url": "/api/system/domains/list",
+			"tests": [
+				{
+					"field": "domains",
+					"mode": "LEN",
+					"value": 2
+				}
+			]
+		},
+		{
+			"method": "GET",
+			"url": "/api/system/admin/domains/list",
+			"tests": [
+				{
+					"field": "domains",
+					"mode": "LEN",
+					"value": 3
+				}
+			]
+		},
+		{
+			"method": "POST",
+			"url": "/api/system/domain/set",
+			"params": {
+				"code": "dom002"
+			}
+		},
+		{
+			"method": "GET",
+			"url": "/api/user/me"
+		},
+		{
+			"method": "GET",
+			"url": "/api/session/me"
+		}
+	]
+}
