@@ -1,11 +1,12 @@
 
 import { ILRequest, ILResponse, ILApplication, ILiweConfig, ILError, ILiWE } from '../../liwe/types';
 import { send_error, send_ok, typed_dict } from "../../liwe/utils";
+import { locale_load } from '../../liwe/locale';
 
 import { perms } from '../../liwe/auth';
 
 import {
-	get_system_domains_list, post_system_domain_set, post_system_admin_domain_add, patch_system_admin_domain_update, delete_system_admin_domain_del, get_system_admin_domains_list, patch_system_admin_theme_set, get_system_theme_get, system_db_init, system_domain_get_by_session, system_domain_get_by_code, system_domain_get_by_id, system_domain_get_default
+	get_system_domains_list, post_system_domain_set, post_system_admin_domain_add, patch_system_admin_domain_update, delete_system_admin_domain_del, get_system_admin_domains_list, patch_system_admin_theme_set, get_system_theme_get, patch_system_admin_reset_id, system_db_init, system_domain_get_by_session, system_domain_get_by_code, system_domain_get_by_id, system_domain_get_default
 } from './methods';
 
 import {
@@ -22,6 +23,7 @@ export const init = ( liwe: ILiWE ) => {
 
 	console.log( "    - System " );
 
+	liwe.cfg.app.languages.map( ( l ) => locale_load( "system", l ) );
 	system_db_init ( liwe );
 
 
@@ -40,7 +42,7 @@ export const init = ( liwe: ILiWE ) => {
 			{ name: "code", type: "string", required: true }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Missing required fields: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		post_system_domain_set ( req,code,  ( err: ILError, domain: SystemDomain ) => {
 			if ( err ) return send_error( res, err );
@@ -53,10 +55,10 @@ export const init = ( liwe: ILiWE ) => {
 		const { code, name, visible, ___errors } = typed_dict( req.fields, [
 			{ name: "code", type: "string", required: true },
 			{ name: "name", type: "string", required: true },
-			{ name: "visible", type: "boolean", required: false, default: true }
+			{ name: "visible", type: "boolean" }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Missing required fields: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		post_system_admin_domain_add ( req,code, name, visible,  ( err: ILError, domain: SystemDomain ) => {
 			if ( err ) return send_error( res, err );
@@ -68,12 +70,12 @@ export const init = ( liwe: ILiWE ) => {
 	app.patch ( "/api/system/admin/domain/update", perms( [ "system.domain" ] ), ( req: ILRequest, res: ILResponse ) => {
 		const { id, code, name, visible, ___errors } = typed_dict( req.fields, [
 			{ name: "id", type: "string", required: true },
-			{ name: "code", type: "string", required: false },
-			{ name: "name", type: "string", required: false },
-			{ name: "visible", type: "boolean", required: false }
+			{ name: "code", type: "string" },
+			{ name: "name", type: "string" },
+			{ name: "visible", type: "boolean" }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Missing required fields: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		patch_system_admin_domain_update ( req,id, code, name, visible,  ( err: ILError, domain: SystemDomain ) => {
 			if ( err ) return send_error( res, err );
@@ -84,11 +86,11 @@ export const init = ( liwe: ILiWE ) => {
 
 	app.delete ( "/api/system/admin/domain/del", perms( [ "system.domain" ] ), ( req: ILRequest, res: ILResponse ) => {
 		const { id, code, ___errors } = typed_dict( req.fields, [
-			{ name: "id", type: "string", required: false },
-			{ name: "code", type: "string", required: false }
+			{ name: "id", type: "string" },
+			{ name: "code", type: "string" }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Missing required fields: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		delete_system_admin_domain_del ( req,id, code,  ( err: ILError, id_domain: string ) => {
 			if ( err ) return send_error( res, err );
@@ -109,10 +111,10 @@ export const init = ( liwe: ILiWE ) => {
 
 	app.patch ( "/api/system/admin/theme/set", perms( [ "system.theme" ] ), ( req: ILRequest, res: ILResponse ) => {
 		const { changes, ___errors } = typed_dict( req.fields, [
-			{ name: "changes", type: "any", required: false }
+			{ name: "changes", type: "any" }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Missing required fields: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		patch_system_admin_theme_set ( req,changes,  ( err: ILError, theme: SystemTheme ) => {
 			if ( err ) return send_error( res, err );
@@ -128,6 +130,22 @@ export const init = ( liwe: ILiWE ) => {
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { theme } );
+		} );
+	} );
+
+	app.patch ( "/api/system/admin/reset/id", perms( [ "system.admin" ] ), ( req: ILRequest, res: ILResponse ) => {
+		const { id, new_id, collection, ___errors } = typed_dict( req.fields, [
+			{ name: "id", type: "string", required: true },
+			{ name: "new_id", type: "string", required: true },
+			{ name: "collection", type: "string", required: true }
+		] );
+
+		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+
+		patch_system_admin_reset_id ( req,id, new_id, collection,  ( err: ILError, id: string ) => {
+			if ( err ) return send_error( res, err );
+
+			send_ok( res, { id } );
 		} );
 	} );
 

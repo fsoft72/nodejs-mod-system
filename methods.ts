@@ -1,13 +1,18 @@
 
 import { ILRequest, ILResponse, LCback, ILiweConfig, ILError, ILiWE } from '../../liwe/types';
-import { collection_add, collection_find_all, collection_find_one, collection_find_one_dict, collection_find_all_dict, collection_del_one_dict, collection_init, mkid, prepare_filters } from '../../liwe/arangodb';
+import { collection_add, collection_count, collection_find_all, collection_find_by_id, collection_find_one, collection_find_one_dict, collection_find_all_dict, collection_del_one_dict, collection_del_all_dict, collection_init, mkid, prepare_filters } from '../../liwe/arangodb';
 import { DocumentCollection } from 'arangojs/collection';
+import { $l } from '../../liwe/locale';
 
 import {
 	SystemDomain, SystemDomainKeys, SystemTheme, SystemThemeKeys
 } from './types';
 
 let _liwe: ILiWE = null;
+
+const _ = ( txt: string, vals: any = null, plural = false ) => {
+	return $l( txt, vals, plural, "system" );
+};
 
 let _coll_system_domains: DocumentCollection = null;
 let _coll_system_themes: DocumentCollection = null;
@@ -37,6 +42,7 @@ const theme_get = async ( req: ILRequest, clean: boolean = false ) => {
 };
 /*=== d2r_end __file_header ===*/
 
+// {{{ get_system_domains_list ( req: ILRequest, cback: LCBack = null ): Promise<SystemDomain[]>
 /**
  * List all visible domains
  *
@@ -57,7 +63,9 @@ export const get_system_domains_list = ( req: ILRequest, cback: LCback = null ):
 		/*=== d2r_end get_system_domains_list ===*/
 	} );
 };
+// }}}
 
+// {{{ post_system_domain_set ( req: ILRequest, code: string, cback: LCBack = null ): Promise<SystemDomain>
 /**
  * Set the current domain for the user
  *
@@ -78,7 +86,9 @@ export const post_system_domain_set = ( req: ILRequest, code: string, cback: LCb
 		/*=== d2r_end post_system_domain_set ===*/
 	} );
 };
+// }}}
 
+// {{{ post_system_admin_domain_add ( req: ILRequest, code: string, name: string, visible: boolean = true, cback: LCBack = null ): Promise<SystemDomain>
 /**
  * Adds a domain in the system
  *
@@ -102,7 +112,9 @@ export const post_system_admin_domain_add = ( req: ILRequest, code: string, name
 		/*=== d2r_end post_system_admin_domain_add ===*/
 	} );
 };
+// }}}
 
+// {{{ patch_system_admin_domain_update ( req: ILRequest, id: string, code?: string, name?: string, visible?: boolean, cback: LCBack = null ): Promise<SystemDomain>
 /**
  * Updates a domain in the system
  *
@@ -133,7 +145,9 @@ export const patch_system_admin_domain_update = ( req: ILRequest, id: string, co
 		/*=== d2r_end patch_system_admin_domain_update ===*/
 	} );
 };
+// }}}
 
+// {{{ delete_system_admin_domain_del ( req: ILRequest, id?: string, code?: string, cback: LCBack = null ): Promise<string>
 /**
  * Deletes a domain from the system
  *
@@ -155,7 +169,9 @@ export const delete_system_admin_domain_del = ( req: ILRequest, id?: string, cod
 		/*=== d2r_end delete_system_admin_domain_del ===*/
 	} );
 };
+// }}}
 
+// {{{ get_system_admin_domains_list ( req: ILRequest, cback: LCBack = null ): Promise<SystemDomain[]>
 /**
  * List all visible domains
  *
@@ -171,7 +187,9 @@ export const get_system_admin_domains_list = ( req: ILRequest, cback: LCback = n
 		/*=== d2r_end get_system_admin_domains_list ===*/
 	} );
 };
+// }}}
 
+// {{{ patch_system_admin_theme_set ( req: ILRequest, changes?: any, cback: LCBack = null ): Promise<SystemTheme>
 /**
  * Patch the system Theme
  *
@@ -194,7 +212,9 @@ export const patch_system_admin_theme_set = ( req: ILRequest, changes?: any, cba
 		/*=== d2r_end patch_system_admin_theme_set ===*/
 	} );
 };
+// }}}
 
+// {{{ get_system_theme_get ( req: ILRequest, cback: LCBack = null ): Promise<SystemTheme>
 /**
  * Returns the current theme
  *
@@ -210,6 +230,30 @@ export const get_system_theme_get = ( req: ILRequest, cback: LCback = null ): Pr
 		/*=== d2r_end get_system_theme_get ===*/
 	} );
 };
+// }}}
+
+// {{{ patch_system_admin_reset_id ( req: ILRequest, id: string, new_id: string, collection: string, cback: LCBack = null ): Promise<string>
+/**
+ * Force an id to be changed on the system
+ *
+ * @param id - the current id [req]
+ * @param new_id - the new id [req]
+ * @param collection - the collection name [req]
+ *
+ */
+export const patch_system_admin_reset_id = ( req: ILRequest, id: string, new_id: string, collection: string, cback: LCback = null ): Promise<string> => {
+	return new Promise( async ( resolve, reject ) => {
+		/*=== d2r_start patch_system_admin_reset_id ===*/
+		const query = `FOR d IN ${ collection } FILTER d.id == '${ id }' UPDATE d WITH { id: '${ new_id }' } IN ${ collection }`;
+
+		await req.db.query( query );
+
+		return cback ? cback( null, new_id ) : resolve( new_id );
+		/*=== d2r_end patch_system_admin_reset_id ===*/
+	} );
+};
+// }}}
+
 
 /**
  * Initializes system module
