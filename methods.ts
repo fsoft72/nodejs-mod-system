@@ -269,12 +269,12 @@ export const system_db_init = ( liwe: ILiWE, cback: LCback = null ): Promise<boo
 			{ type: "persistent", fields: [ "id" ], unique: true },
 			{ type: "persistent", fields: [ "code" ], unique: true },
 			{ type: "persistent", fields: [ "visible" ], unique: false },
-		], false );
+		] );
 
 		_coll_system_themes = await collection_init( liwe.db, COLL_SYSTEM_THEMES, [
 			{ type: "persistent", fields: [ "id" ], unique: true },
 			{ type: "persistent", fields: [ "domain" ], unique: true },
-		], false );
+		] );
 
 		/*=== d2r_start system_db_init ===*/
 		let domain = liwe.cfg?.app?.domain || 'default';
