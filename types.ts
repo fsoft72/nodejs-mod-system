@@ -4,7 +4,7 @@
 
 /** SystemDomain */
 export interface SystemDomain {
-	/** The domain ID */
+	/** the main id field */
 	id?: string;
 	/** The domain unique code */
 	code?: string;
@@ -23,9 +23,9 @@ export const SystemDomainKeys = {
 
 /** SystemTheme */
 export interface SystemTheme {
-	/** The Theme ID */
+	/** the main id field */
 	id?: string;
-	/** The Domain */
+	/** The domain code */
 	domain?: string;
 	/** The Theme data */
 	data?: any;
@@ -33,7 +33,7 @@ export interface SystemTheme {
 
 export const SystemThemeKeys = {
 	'id': { type: 'string', priv: false },
-	'domain': { type: 'string', priv: false },
+	'domain': { type: 'string', priv: true },
 	'data': { type: 'any', priv: false },
 };
 
