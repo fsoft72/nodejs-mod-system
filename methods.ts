@@ -1,7 +1,6 @@
 
 import { ILRequest, ILResponse, LCback, ILiweConfig, ILError, ILiWE } from '../../liwe/types';
 import { mkid } from '../../liwe/utils';
-import { collection_add, collection_count, collection_count_dict, collection_find_all, collection_find_one, collection_find_one_dict, collection_find_all_dict, collection_del_one_dict, collection_del_all_dict, collection_init, prepare_filters } from '../../liwe/arangodb';
 import { DocumentCollection } from 'arangojs/collection';
 import { $l } from '../../liwe/locale';
 
@@ -25,15 +24,17 @@ const COLL_SYSTEM_THEMES = "system_themes";
 import { keys_filter, merge, set_attr } from '../../liwe/utils';
 import { session_get, session_set_val } from '../session/methods';
 import { Session } from '../session/types';
+import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one } from '../../liwe/db/arango';
+import { collection_init } from '../../liwe/arangodb';
 
 const domain_get = async ( id: string = null, code: string = null ) => {
-	const [ filters, values ] = prepare_filters( 'sd', { id, code } );
-	return await collection_find_one( _liwe.db, `FOR sd IN system_domains ${ filters } RETURN sd`, values );
+	const [ filters, values ] = adb_prepare_filters( 'sd', { id, code } );
+	return await adb_query_one( _liwe.db, `FOR sd IN system_domains ${ filters } RETURN sd`, values );
 };
 
 const theme_get = async ( req: ILRequest, clean: boolean = false ) => {
 	const domain: SystemDomain = await system_domain_get_by_session( req );
-	let theme: SystemTheme = await collection_find_one_dict( req.db, COLL_SYSTEM_THEMES, { domain: domain.code } );
+	let theme: SystemTheme = await adb_find_one( req.db, COLL_SYSTEM_THEMES, { domain: domain.code } );
 
 	if ( !theme ) theme = { domain: domain.code, data: {} };
 
@@ -53,7 +54,7 @@ const theme_get = async ( req: ILRequest, clean: boolean = false ) => {
 export const get_system_domains_list = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomain[]> => {
 	return new Promise( async ( resolve, reject ) => {
 		/*=== d2r_start get_system_domains_list ===*/
-		const sds: SystemDomain[] = await collection_find_all( req.db, `FOR sd IN system_domains FILTER sd.visible == true SORT sd.name RETURN sd` );
+		const sds: SystemDomain[] = await adb_query_all( req.db, `FOR sd IN system_domains FILTER sd.visible == true SORT sd.name RETURN sd` );
 
 		if ( !sds || !sds.length )
 			return cback ? cback( null, sds ) : resolve( sds );
@@ -108,7 +109,7 @@ export const post_system_admin_domain_add = ( req: ILRequest, code: string, name
 
 		if ( sd ) return cback ? cback( err ) : reject( err );
 
-		await collection_add( _coll_system_domains, dom );
+		await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, dom );
 
 		return cback ? cback( null, dom ) : resolve( dom );
 		/*=== d2r_end post_system_admin_domain_add ===*/
@@ -142,7 +143,7 @@ export const patch_system_admin_domain_update = ( req: ILRequest, id: string, co
 		set_attr( dom, 'name', name );
 		set_attr( dom, 'visible', visible );
 
-		dom = await collection_add( _coll_system_domains, dom );
+		dom = await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, dom );
 
 		return cback ? cback( null, dom ) : resolve( dom );
 		/*=== d2r_end patch_system_admin_domain_update ===*/
@@ -185,7 +186,7 @@ export const delete_system_admin_domain_del = ( req: ILRequest, id?: string, cod
 export const get_system_admin_domains_list = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomain[]> => {
 	return new Promise( async ( resolve, reject ) => {
 		/*=== d2r_start get_system_admin_domains_list ===*/
-		const sds: SystemDomain[] = await collection_find_all( req.db, `FOR sd IN system_domains SORT sd.name RETURN sd` );
+		const sds: SystemDomain[] = await adb_query_all( req.db, `FOR sd IN system_domains SORT sd.name RETURN sd` );
 
 		return cback ? cback( null, sds ) : resolve( sds );
 		/*=== d2r_end get_system_admin_domains_list ===*/
@@ -208,7 +209,7 @@ export const patch_system_admin_theme_set = ( req: ILRequest, changes?: any, cba
 		const data = { ...theme.data };
 
 		merge( data, changes );
-		theme = await collection_add( _coll_system_themes, theme, false, SystemThemeKeys );
+		theme = await adb_record_add( req.db, COLL_SYSTEM_THEMES, theme, SystemThemeKeys );
 		theme.data = data;
 
 		console.log( "===== THEME: ", theme );
@@ -369,7 +370,7 @@ export const system_db_init = ( liwe: ILiWE, cback: LCback = null ): Promise<boo
 		let sd: SystemDomain = await system_domain_get_by_code( domain );
 		if ( !sd ) {
 			sd = { id: mkid( "system" ), code: domain, name: "Default domain", visible: true };
-			await collection_add( _coll_system_domains, sd );
+			await adb_record_add( liwe.db, COLL_SYSTEM_DOMAINS, sd );
 		}
 		/*=== d2r_end system_db_init ===*/
 	} );
