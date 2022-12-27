@@ -24,8 +24,7 @@ const COLL_SYSTEM_THEMES = "system_themes";
 import { keys_filter, merge, set_attr } from '../../liwe/utils';
 import { session_get, session_set_val } from '../session/methods';
 import { Session } from '../session/types';
-import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one } from '../../liwe/db/arango';
-import { collection_init } from '../../liwe/arangodb';
+import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one, adb_collection_init } from '../../liwe/db/arango';
 
 const domain_get = async ( id: string = null, code: string = null ) => {
 	const [ filters, values ] = adb_prepare_filters( 'sd', { id, code } );
@@ -353,13 +352,13 @@ export const system_db_init = ( liwe: ILiWE, cback: LCback = null ): Promise<boo
 	return new Promise( async ( resolve, reject ) => {
 		_liwe = liwe;
 
-		_coll_system_domains = await collection_init( liwe.db, COLL_SYSTEM_DOMAINS, [
+		_coll_system_domains = await adb_collection_init( liwe.db, COLL_SYSTEM_DOMAINS, [
 			{ type: "persistent", fields: [ "id" ], unique: true },
 			{ type: "persistent", fields: [ "code" ], unique: true },
 			{ type: "persistent", fields: [ "visible" ], unique: false },
 		], { drop: false } );
 
-		_coll_system_themes = await collection_init( liwe.db, COLL_SYSTEM_THEMES, [
+		_coll_system_themes = await adb_collection_init( liwe.db, COLL_SYSTEM_THEMES, [
 			{ type: "persistent", fields: [ "id" ], unique: true },
 			{ type: "persistent", fields: [ "domain" ], unique: true },
 		], { drop: false } );
