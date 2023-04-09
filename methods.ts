@@ -5,7 +5,7 @@ import { DocumentCollection } from 'arangojs/collection';
 import { $l } from '../../liwe/locale';
 
 import {
-	SystemDomain, SystemDomainKeys, SystemTheme, SystemThemeKeys
+	SystemDomain, SystemDomainKeys, SystemTheme, SystemThemeKeys,
 } from './types';
 
 let _liwe: ILiWE = null;
@@ -20,7 +20,7 @@ let _coll_system_themes: DocumentCollection = null;
 const COLL_SYSTEM_DOMAINS = "system_domains";
 const COLL_SYSTEM_THEMES = "system_themes";
 
-/*=== d2r_start __file_header === */
+/*=== f2c_start __file_header === */
 import { keys_filter, merge, set_attr } from '../../liwe/utils';
 import { session_get, session_set_val } from '../session/methods';
 import { Session } from '../session/types';
@@ -41,18 +41,20 @@ const theme_get = async ( req: ILRequest, clean: boolean = false ) => {
 
 	return theme;
 };
-/*=== d2r_end __file_header ===*/
+/*=== f2c_end __file_header ===*/
 
 // {{{ get_system_domains_list ( req: ILRequest, cback: LCBack = null ): Promise<SystemDomain[]>
 /**
+ *
  * List all visible domains
  *
-
+ *
+ * @return domains: SystemDomain
  *
  */
 export const get_system_domains_list = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomain[]> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start get_system_domains_list ===*/
+		/*=== f2c_start get_system_domains_list ===*/
 		const sds: SystemDomain[] = await adb_query_all( req.db, `FOR sd IN system_domains FILTER sd.visible == true SORT sd.name RETURN sd` );
 
 		if ( !sds || !sds.length )
@@ -61,22 +63,24 @@ export const get_system_domains_list = ( req: ILRequest, cback: LCback = null ):
 		sds.forEach( ( sd ) => keys_filter( sd, SystemDomainKeys ) );
 
 		return cback ? cback( null, sds ) : resolve( sds );
-		/*=== d2r_end get_system_domains_list ===*/
+		/*=== f2c_end get_system_domains_list ===*/
 	} );
 };
 // }}}
 
 // {{{ post_system_domain_set ( req: ILRequest, code: string, cback: LCBack = null ): Promise<SystemDomain>
 /**
+ *
  * Set the current domain for the user
-
  *
  * @param code - the domain unique code [req]
+ *
+ * @return domain: SystemDomain
  *
  */
 export const post_system_domain_set = ( req: ILRequest, code: string, cback: LCback = null ): Promise<SystemDomain> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start post_system_domain_set ===*/
+		/*=== f2c_start post_system_domain_set ===*/
 		const sd: SystemDomain = await domain_get( null, code );
 		const err = { message: 'Domain not found' };
 		if ( !sd ) return cback ? cback( err ) : reject( err );
@@ -85,23 +89,26 @@ export const post_system_domain_set = ( req: ILRequest, code: string, cback: LCb
 		await session_set_val( req, 'domain_code', sd.code );
 
 		return cback ? cback( null, null ) : resolve( null );
-		/*=== d2r_end post_system_domain_set ===*/
+		/*=== f2c_end post_system_domain_set ===*/
 	} );
 };
 // }}}
 
 // {{{ post_system_admin_domain_add ( req: ILRequest, code: string, name: string, visible?: boolean, cback: LCBack = null ): Promise<SystemDomain>
 /**
+ *
  * Adds a new domain to the System.
  *
  * @param code - the domain unique code [req]
  * @param name - the domain name [req]
  * @param visible - if the domain is visible or not [default: true] [opt]
  *
+ * @return domain: SystemDomain
+ *
  */
 export const post_system_admin_domain_add = ( req: ILRequest, code: string, name: string, visible?: boolean, cback: LCback = null ): Promise<SystemDomain> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start post_system_admin_domain_add ===*/
+		/*=== f2c_start post_system_admin_domain_add ===*/
 		const dom: SystemDomain = { code: code.toLowerCase(), name, visible, id: mkid( "system" ) };
 		const sd: SystemDomain = await system_domain_get_by_code( code );
 		const err = { message: 'Domain already exists' };
@@ -111,25 +118,27 @@ export const post_system_admin_domain_add = ( req: ILRequest, code: string, name
 		await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, dom );
 
 		return cback ? cback( null, dom ) : resolve( dom );
-		/*=== d2r_end post_system_admin_domain_add ===*/
+		/*=== f2c_end post_system_admin_domain_add ===*/
 	} );
 };
 // }}}
 
 // {{{ patch_system_admin_domain_update ( req: ILRequest, id: string, code?: string, name?: string, visible?: boolean, cback: LCBack = null ): Promise<SystemDomain>
 /**
+ *
  * Updates a domain in the system. The `id` field must be provided.
-
  *
  * @param id - the domain id [req]
  * @param code - the domain unique code [opt]
  * @param name - the domain name [opt]
  * @param visible - if the domain is visible or not [opt]
  *
+ * @return domain: SystemDomain
+ *
  */
 export const patch_system_admin_domain_update = ( req: ILRequest, id: string, code?: string, name?: string, visible?: boolean, cback: LCback = null ): Promise<SystemDomain> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start patch_system_admin_domain_update ===*/
+		/*=== f2c_start patch_system_admin_domain_update ===*/
 		let dom: SystemDomain = await system_domain_get_by_id( id );
 		const err = { message: 'Domain code already in use by another domain' };
 
@@ -145,23 +154,25 @@ export const patch_system_admin_domain_update = ( req: ILRequest, id: string, co
 		dom = await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, dom );
 
 		return cback ? cback( null, dom ) : resolve( dom );
-		/*=== d2r_end patch_system_admin_domain_update ===*/
+		/*=== f2c_end patch_system_admin_domain_update ===*/
 	} );
 };
 // }}}
 
 // {{{ delete_system_admin_domain_del ( req: ILRequest, id?: string, code?: string, cback: LCBack = null ): Promise<string>
 /**
+ *
  * Delete a domain from the system. You can specify both `id` and `code` for deletion
-
  *
  * @param id - the domain id [opt]
  * @param code - the domain unique code [opt]
  *
+ * @return id_domain: string
+ *
  */
 export const delete_system_admin_domain_del = ( req: ILRequest, id?: string, code?: string, cback: LCback = null ): Promise<string> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start delete_system_admin_domain_del ===*/
+		/*=== f2c_start delete_system_admin_domain_del ===*/
 		const sd: SystemDomain = await domain_get( id, code );
 		const err = { message: "Domain not found" };
 
@@ -170,40 +181,44 @@ export const delete_system_admin_domain_del = ( req: ILRequest, id?: string, cod
 		await _coll_system_domains.remove( ( sd as any )._id );
 
 		return cback ? cback( null, sd.id ) : resolve( sd.id );
-		/*=== d2r_end delete_system_admin_domain_del ===*/
+		/*=== f2c_end delete_system_admin_domain_del ===*/
 	} );
 };
 // }}}
 
 // {{{ get_system_admin_domains_list ( req: ILRequest, cback: LCBack = null ): Promise<SystemDomain[]>
 /**
+ *
  * List all domains
  *
-
+ *
+ * @return domains: SystemDomain
  *
  */
 export const get_system_admin_domains_list = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomain[]> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start get_system_admin_domains_list ===*/
+		/*=== f2c_start get_system_admin_domains_list ===*/
 		const sds: SystemDomain[] = await adb_query_all( req.db, `FOR sd IN system_domains SORT sd.name RETURN sd` );
 
 		return cback ? cback( null, sds ) : resolve( sds );
-		/*=== d2r_end get_system_admin_domains_list ===*/
+		/*=== f2c_end get_system_admin_domains_list ===*/
 	} );
 };
 // }}}
 
 // {{{ patch_system_admin_theme_set ( req: ILRequest, changes?: any, cback: LCBack = null ): Promise<SystemTheme>
 /**
+ *
  * Changes something in the system theme.
-
  *
  * @param changes - the main changes [opt]
+ *
+ * @return theme: SystemTheme
  *
  */
 export const patch_system_admin_theme_set = ( req: ILRequest, changes?: any, cback: LCback = null ): Promise<SystemTheme> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start patch_system_admin_theme_set ===*/
+		/*=== f2c_start patch_system_admin_theme_set ===*/
 		let theme: SystemTheme = await theme_get( req );
 		const data = { ...theme.data };
 
@@ -214,7 +229,7 @@ export const patch_system_admin_theme_set = ( req: ILRequest, changes?: any, cba
 		console.log( "===== THEME: ", theme );
 
 		return cback ? cback( null, theme ) : resolve( theme );
-		/*=== d2r_end patch_system_admin_theme_set ===*/
+		/*=== f2c_end patch_system_admin_theme_set ===*/
 	} );
 };
 // }}}
@@ -223,86 +238,100 @@ export const patch_system_admin_theme_set = ( req: ILRequest, changes?: any, cba
 /**
  *
  *
-
+ * @return theme: SystemTheme
  *
  */
 export const get_system_theme_get = ( req: ILRequest, cback: LCback = null ): Promise<SystemTheme> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start get_system_theme_get ===*/
+		/*=== f2c_start get_system_theme_get ===*/
 		const theme: SystemTheme = await theme_get( req, true );
 
 		return cback ? cback( null, theme ) : resolve( theme );
-		/*=== d2r_end get_system_theme_get ===*/
+		/*=== f2c_end get_system_theme_get ===*/
 	} );
 };
 // }}}
 
 // {{{ patch_system_admin_reset_id ( req: ILRequest, id: string, new_id: string, collection: string, cback: LCBack = null ): Promise<string>
 /**
+ *
  * Force an id to be changed on the system.
-You have to specify the current `id`, the new `id` and the `collection` name.
-
+ * You have to specify the current `id`, the new `id` and the `collection` name.
  *
  * @param id - the current id [req]
  * @param new_id - the new id [req]
  * @param collection - the collection name [req]
  *
+ * @return id: string
+ *
  */
 export const patch_system_admin_reset_id = ( req: ILRequest, id: string, new_id: string, collection: string, cback: LCback = null ): Promise<string> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start patch_system_admin_reset_id ===*/
+		/*=== f2c_start patch_system_admin_reset_id ===*/
 		const query = `FOR d IN ${ collection } FILTER d.id == '${ id }' UPDATE d WITH { id: '${ new_id }' } IN ${ collection }`;
 
 		await req.db.query( query );
 
 		return cback ? cback( null, new_id ) : resolve( new_id );
-		/*=== d2r_end patch_system_admin_reset_id ===*/
+		/*=== f2c_end patch_system_admin_reset_id ===*/
 	} );
 };
 // }}}
 
-
+// {{{ system_domain_get_default ( cback: LCBack = null ): Promise<SystemDomain>
 /**
+ *
  * This function returns a `SystemDomain` structure by its id.
  *
-
+ *
+ * @return : SystemDomain
  *
  */
 export const system_domain_get_default = ( cback: LCback = null ): Promise<SystemDomain> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start system_domain_get_default ===*/
+		/*=== f2c_start system_domain_get_default ===*/
 		const sd: SystemDomain = await system_domain_get_by_code( _liwe.cfg.app.domain );
 
 		return cback ? cback( null, sd ) : resolve( sd );
-		/*=== d2r_end system_domain_get_default ===*/
+		/*=== f2c_end system_domain_get_default ===*/
 	} );
 };
+// }}}
 
+// {{{ system_domain_get_by_id ( id: string, cback: LCBack = null ): Promise<SystemDomain>
 /**
+ *
  * This function returns a `SystemDomain` structure by its id.
  *
  * @param id - The Domain id [req]
  *
+ * @return : SystemDomain
+ *
  */
 export const system_domain_get_by_id = ( id: string, cback: LCback = null ): Promise<SystemDomain> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start system_domain_get_by_id ===*/
+		/*=== f2c_start system_domain_get_by_id ===*/
 		const sd: SystemDomain = await domain_get( id );
 
 		return cback ? cback( null, sd ) : resolve( sd );
-		/*=== d2r_end system_domain_get_by_id ===*/
+		/*=== f2c_end system_domain_get_by_id ===*/
 	} );
 };
+// }}}
 
+// {{{ system_domain_get_by_code ( code: string, cback: LCBack = null ): Promise<SystemDomain>
 /**
+ *
  * This function returns a `SystemDomain` structure by its code.
  *
  * @param code - The Domain code [req]
  *
+ * @return : SystemDomain
+ *
  */
 export const system_domain_get_by_code = ( code: string, cback: LCback = null ): Promise<SystemDomain> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start system_domain_get_by_code ===*/
+		/*=== f2c_start system_domain_get_by_code ===*/
 		let sd: SystemDomain = null;
 		if ( !code || code == '__system__' )
 			sd = await system_domain_get_default();
@@ -310,19 +339,24 @@ export const system_domain_get_by_code = ( code: string, cback: LCback = null ):
 			sd = await domain_get( null, code.toLowerCase() );
 
 		return cback ? cback( null, sd ) : resolve( sd );
-		/*=== d2r_end system_domain_get_by_code ===*/
+		/*=== f2c_end system_domain_get_by_code ===*/
 	} );
 };
+// }}}
 
+// {{{ system_domain_get_by_session ( req: ILRequest, cback: LCBack = null ): Promise<SystemDomain>
 /**
+ *
  * This function returns a `SystemDomain` structure by its code.
  *
  * @param req - The current session request [req]
  *
+ * @return : SystemDomain
+ *
  */
 export const system_domain_get_by_session = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomain> => {
 	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start system_domain_get_by_session ===*/
+		/*=== f2c_start system_domain_get_by_session ===*/
 		let sd: SystemDomain = null;
 
 		if ( !req.session ) {
@@ -338,14 +372,19 @@ export const system_domain_get_by_session = ( req: ILRequest, cback: LCback = nu
 		if ( !sd ) sd = await system_domain_get_default();
 
 		return cback ? cback( null, sd ) : resolve( sd );
-		/*=== d2r_end system_domain_get_by_session ===*/
+		/*=== f2c_end system_domain_get_by_session ===*/
 	} );
 };
+// }}}
 
+// {{{ system_db_init ( liwe: ILiWE, cback: LCBack = null ): Promise<boolean>
 /**
- * This function initializes the module database tables.
  *
- * @param liwe - LiWE full config [req]
+ * Initializes the module's database
+ *
+ * @param liwe - The Liwe object [req]
+ *
+ * @return : boolean
  *
  */
 export const system_db_init = ( liwe: ILiWE, cback: LCback = null ): Promise<boolean> => {
@@ -363,7 +402,7 @@ export const system_db_init = ( liwe: ILiWE, cback: LCback = null ): Promise<boo
 			{ type: "persistent", fields: [ "domain" ], unique: true },
 		], { drop: false } );
 
-		/*=== d2r_start system_db_init ===*/
+		/*=== f2c_start system_db_init ===*/
 		let domain = liwe.cfg?.app?.domain || 'default';
 
 		let sd: SystemDomain = await system_domain_get_by_code( domain );
@@ -371,28 +410,9 @@ export const system_db_init = ( liwe: ILiWE, cback: LCback = null ): Promise<boo
 			sd = { id: mkid( "system" ), code: domain, name: "Default domain", visible: true };
 			await adb_record_add( liwe.db, COLL_SYSTEM_DOMAINS, sd );
 		}
-		/*=== d2r_end system_db_init ===*/
+		/*=== f2c_end system_db_init ===*/
 	} );
 };
+// }}}
 
-/**
- * This function returns the current domain of the logged user.
 
-If the user is not logged, or there is no associated domain, it will return **NULL**
- *
- * @param req - the Request field [req]
- *
- */
-export const system_domain_get_current = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomain> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== d2r_start system_domain_get_current ===*/
-		let sd: SystemDomain = null;
-
-		if ( !req.session ) return cback ? cback( null, null ) : resolve( null );
-
-		sd = await system_domain_get_by_code( ( req.session as any ).domain || req.session.domain_code );
-
-		return cback ? cback( null, sd ) : resolve( sd );
-		/*=== d2r_end system_domain_get_current ===*/
-	} );
-};
