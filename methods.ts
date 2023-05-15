@@ -1,7 +1,5 @@
 
 import { ILRequest, ILResponse, LCback, ILiweConfig, ILError, ILiWE } from '../../liwe/types';
-import { mkid } from '../../liwe/utils';
-import { DocumentCollection } from 'arangojs/collection';
 import { $l } from '../../liwe/locale';
 
 import {
@@ -14,17 +12,15 @@ const _ = ( txt: string, vals: any = null, plural = false ) => {
 	return $l( txt, vals, plural, "system" );
 };
 
-let _coll_system_domains: DocumentCollection = null;
-let _coll_system_themes: DocumentCollection = null;
-
 const COLL_SYSTEM_DOMAINS = "system_domains";
 const COLL_SYSTEM_THEMES = "system_themes";
 
 /*=== f2c_start __file_header === */
-import { keys_filter, merge, set_attr } from '../../liwe/utils';
+import { keys_filter, merge, set_attr, mkid } from '../../liwe/utils';
 import { session_get, session_set_val } from '../session/methods';
 import { Session } from '../session/types';
-import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one, adb_collection_init } from '../../liwe/db/arango';
+import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one, adb_collection_init, adb_del_one } from '../../liwe/db/arango';
+import { send_mail } from '../../liwe/mail';
 
 const domain_get = async ( id: string = null, code: string = null ) => {
 	const [ filters, values ] = adb_prepare_filters( 'sd', { id, code } );
@@ -178,7 +174,7 @@ export const delete_system_admin_domain_del = ( req: ILRequest, id?: string, cod
 
 		if ( !sd ) return cback ? cback( err ) : reject( err );
 
-		await _coll_system_domains.remove( ( sd as any )._id );
+		await adb_del_one( req.db, COLL_SYSTEM_DOMAINS, sd.id );
 
 		return cback ? cback( null, sd.id ) : resolve( sd.id );
 		/*=== f2c_end delete_system_admin_domain_del ===*/
@@ -274,6 +270,45 @@ export const patch_system_admin_reset_id = ( req: ILRequest, id: string, new_id:
 
 		return cback ? cback( null, new_id ) : resolve( new_id );
 		/*=== f2c_end patch_system_admin_reset_id ===*/
+	} );
+};
+// }}}
+
+// {{{ post_system_email_test ( req: ILRequest, email: string, cback: LCBack = null ): Promise<boolean>
+/**
+ *
+ * This endpoint tests email sending.
+ * You can specify the destination email address to send the message to, but the message itself is defined by the app.
+ *
+ * @param email - Destination email address [req]
+ *
+ * @return result: boolean
+ *
+ */
+export const post_system_email_test = ( req: ILRequest, email: string, cback: LCback = null ): Promise<boolean> => {
+	return new Promise( async ( resolve, reject ) => {
+		/*=== f2c_start post_system_email_test ===*/
+		const err = { message: 'Please check smtp.send_for_real in the config file' };
+		if ( req.cfg.smtp.send_for_real == false )
+			return cback ? cback( err, false ) : reject( err );
+
+		try {
+			await send_mail(
+				"LiWE System Test Email",
+				"This is a test email from LiWE",
+				"This is a <b>test email</b> from LiWE",
+				email,
+				req.cfg.smtp.from,
+				req.cfg.smtp.from,
+				null,
+			);
+
+			return cback ? cback( null, true ) : resolve( true );
+		} catch ( e ) {
+			err.message = e.message;
+			return cback ? cback( err, false ) : reject( err );
+		}
+		/*=== f2c_end post_system_email_test ===*/
 	} );
 };
 // }}}
@@ -391,13 +426,13 @@ export const system_db_init = ( liwe: ILiWE, cback: LCback = null ): Promise<boo
 	return new Promise( async ( resolve, reject ) => {
 		_liwe = liwe;
 
-		_coll_system_domains = await adb_collection_init( liwe.db, COLL_SYSTEM_DOMAINS, [
+		await adb_collection_init( liwe.db, COLL_SYSTEM_DOMAINS, [
 			{ type: "persistent", fields: [ "id" ], unique: true },
 			{ type: "persistent", fields: [ "code" ], unique: true },
 			{ type: "persistent", fields: [ "visible" ], unique: false },
 		], { drop: false } );
 
-		_coll_system_themes = await adb_collection_init( liwe.db, COLL_SYSTEM_THEMES, [
+		await adb_collection_init( liwe.db, COLL_SYSTEM_THEMES, [
 			{ type: "persistent", fields: [ "id" ], unique: true },
 			{ type: "persistent", fields: [ "domain" ], unique: true },
 		], { drop: false } );
