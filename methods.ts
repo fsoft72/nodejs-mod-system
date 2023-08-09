@@ -28,13 +28,15 @@ import { session_get, session_set_val } from '../session/methods';
 import { Session } from '../session/types';
 import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one, adb_collection_init, adb_del_one } from '../../liwe/db/arango';
 import { send_mail } from '../../liwe/mail';
+import { perm_available } from '../../liwe/auth';
+import { values } from 'pdf-lib';
 
 type Permission = {
 	name: string,
 	description: string,
 };
 
-const permissions: Record<string, Permission[]> = {
+const permissions: Record<string, Permission> = {
 };
 
 const domain_get = async ( id: string = null, code: string = null ) => {
@@ -345,6 +347,29 @@ export const get_system_admin_permissions_list = ( req: ILRequest, cback: LCback
 	return new Promise( async ( resolve, reject ) => {
 		/*=== f2c_start get_system_admin_permissions_list ===*/
 
+		// if the user has system.admin, return all permissions
+		if ( perm_available( req.user, [ 'system.admin' ] ) ) {
+			return cback ? cback( null, permissions ) : resolve( permissions );
+		}
+
+		// otherwise, return only the permissions the user already has
+		const res: Record<string, Permission[]> = {};
+
+		const mods = Object.keys( permissions ) as string[] ?? [];
+
+		mods.forEach( ( module: string ) => {
+			const perms: Record<string, string> = permissions[ module ];
+			const kp = Object.keys( perms ) as string[] ?? [];
+			kp.forEach( ( k: string ) => {
+				const txt = perms[ k ];
+				if ( perm_available( req.user, [ k ] ) ) {
+					if ( !res[ module ] ) res[ module ] = [];
+					res[ module ].push( { name: k, description: txt } );
+				}
+			} );
+		} );
+
+		return cback ? cback( null, res ) : resolve( res );
 		/*=== f2c_end get_system_admin_permissions_list ===*/
 	} );
 };
@@ -487,7 +512,7 @@ export const system_db_init = ( liwe: ILiWE, cback: LCback = null ): Promise<boo
 	return new Promise( async ( resolve, reject ) => {
 		_liwe = liwe;
 
-		system_permissions_register( 'system', _module_perms);
+		system_permissions_register( 'system', _module_perms );
 
 		await adb_collection_init( liwe.db, COLL_SYSTEM_DOMAINS, [
 			{ type: "persistent", fields: [ "id" ], unique: true },
