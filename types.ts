@@ -3,7 +3,6 @@
 /*=== f2c_start __file ===*/
 
 /*=== f2c_end __file ===*/
-
 /** SystemDomain */
 export interface SystemDomain {
 	/** the main id field */
