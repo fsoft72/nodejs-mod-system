@@ -21,6 +21,7 @@ import { session_get, session_set_val } from '../session/methods';
 import { Session } from '../session/types';
 import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one, adb_collection_init, adb_del_one } from '../../liwe/db/arango';
 import { send_mail } from '../../liwe/mail';
+import { perm_available } from '../../liwe/auth';
 
 const domain_get = async ( id: string = null, code: string = null ) => {
 	const [ filters, values ] = adb_prepare_filters( 'sd', { id, code } );
@@ -309,6 +310,51 @@ export const post_system_email_test = ( req: ILRequest, email: string, cback: LC
 			return cback ? cback( err, false ) : reject( err );
 		}
 		/*=== f2c_end post_system_email_test ===*/
+	} );
+};
+// }}}
+
+// {{{ get_system_admin_permissions_list ( req: ILRequest, cback: LCBack = null ): Promise<object>
+/**
+ *
+ * Returns all the permissions available in the System.
+ * The list depends also on the user's permissions:
+ * - If the user has `system.admin`, the endpoint will return **all permissions** available
+ * - if the user doesn't have `system.admin` the endpoint will return **only the permissions the user already has**.
+ * Permissions are returned in an object with: `module name` as key and a string list of permissions available for that module.
+ *
+ *
+ * @return permissions: object
+ *
+ */
+export const get_system_admin_permissions_list = ( req: ILRequest, cback: LCback = null ): Promise<object> => {
+	return new Promise( async ( resolve, reject ) => {
+		/*=== f2c_start get_system_admin_permissions_list ===*/
+
+		// if the user has system.admin, return all permissions
+		if ( perm_available( req.user, [ 'system.admin' ] ) ) {
+			return cback ? cback( null, permissions ) : resolve( permissions );
+		}
+
+		// otherwise, return only the permissions the user already has
+		const res: Record<string, Record<string, string>> = {};
+
+		const mods = Object.keys( permissions ) as string[] ?? [];
+
+		mods.forEach( ( module: string ) => {
+			const perms: Record<string, string> = permissions[ module ];
+			const kp = Object.keys( perms ) as string[] ?? [];
+			kp.forEach( ( k: string ) => {
+				const txt = perms[ k ];
+				if ( perm_available( req.user, [ k ] ) ) {
+					if ( !res[ module ] ) res[ module ] = {};
+					res[ module ][ k ] = txt;
+				}
+			} );
+		} );
+
+		return cback ? cback( null, res ) : resolve( res );
+		/*=== f2c_end get_system_admin_permissions_list ===*/
 	} );
 };
 // }}}
