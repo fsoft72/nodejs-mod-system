@@ -6,11 +6,11 @@
 /** SystemDomain */
 export interface SystemDomain {
 	/** the main id field */
-	id?: string;
+	id: string;
 	/** The domain unique code */
-	code?: string;
+	code: string;
 	/** The domain name */
-	name?: string;
+	name: string;
 	/** If the domain is visible */
 	visible?: boolean;
 }
@@ -25,9 +25,9 @@ export const SystemDomainKeys = {
 /** SystemTheme */
 export interface SystemTheme {
 	/** the main id field */
-	id?: string;
+	id: string;
 	/** The domain code */
-	domain?: string;
+	domain: string;
 	/** The Theme data */
 	data?: any;
 }
@@ -36,5 +36,24 @@ export const SystemThemeKeys = {
 	'id': { type: 'string', priv: false },
 	'domain': { type: 'string', priv: true },
 	'data': { type: 'any', priv: false },
+};
+
+/** SystemDomainAdmin */
+export interface SystemDomainAdmin {
+	/** the main id field */
+	id: string;
+	/** The domain unique code */
+	code: string;
+	/** The domain name */
+	name: string;
+	/** If the domain is visible */
+	visible: boolean;
+}
+
+export const SystemDomainAdminKeys = {
+	'id': { type: 'string', priv: false },
+	'code': { type: 'string', priv: false },
+	'name': { type: 'string', priv: false },
+	'visible': { type: 'boolean', priv: false },
 };
 

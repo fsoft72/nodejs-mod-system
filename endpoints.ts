@@ -20,7 +20,8 @@ import {
 } from './methods';
 
 import {
-	SystemDomain, SystemDomainKeys, SystemTheme, SystemThemeKeys,
+	SystemDomain, SystemDomainAdmin, SystemDomainAdminKeys, SystemDomainKeys, SystemTheme,
+	SystemThemeKeys,
 } from './types';
 
 /*=== f2c_start __header ===*/
@@ -110,7 +111,7 @@ export const init = ( liwe: ILiWE ) => {
 	app.get ( '/api/system/admin/domains/list', perms( [ "system.domain" ] ), ( req: ILRequest, res: ILResponse ) => {
 		
 
-		get_system_admin_domains_list ( req, ( err: ILError, domains: SystemDomain ) => {
+		get_system_admin_domains_list ( req, ( err: ILError, domains: SystemDomainAdmin ) => {
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { domains } );

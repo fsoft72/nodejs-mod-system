@@ -8,7 +8,8 @@ import { $l } from '../../liwe/locale';
 
 
 import {
-	SystemDomain, SystemDomainKeys, SystemTheme, SystemThemeKeys,
+	SystemDomain, SystemDomainAdmin, SystemDomainAdminKeys, SystemDomainKeys, SystemTheme,
+	SystemThemeKeys,
 } from './types';
 
 import _module_perms from './perms';
@@ -47,7 +48,7 @@ const theme_get = async ( req: ILRequest, clean: boolean = false ) => {
 	const domain: SystemDomain = await system_domain_get_by_session( req );
 	let theme: SystemTheme = await adb_find_one( req.db, COLL_SYSTEM_THEMES, { domain: domain.code } );
 
-	if ( !theme ) theme = { domain: domain.code, data: {} };
+	if ( !theme ) theme = { id: mkid( 'theme' ), domain: domain.code, data: {} };
 
 	if ( clean ) keys_filter( theme, SystemThemeKeys );
 
@@ -198,19 +199,19 @@ export const delete_system_admin_domain_del = ( req: ILRequest, id?: string, cod
 };
 // }}}
 
-// {{{ get_system_admin_domains_list ( req: ILRequest, cback: LCBack = null ): Promise<SystemDomain[]>
+// {{{ get_system_admin_domains_list ( req: ILRequest, cback: LCBack = null ): Promise<SystemDomainAdmin[]>
 /**
  *
  * List all domains
  *
  *
- * @return domains: SystemDomain
+ * @return domains: SystemDomainAdmin
  *
  */
-export const get_system_admin_domains_list = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomain[]> => {
+export const get_system_admin_domains_list = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomainAdmin[]> => {
 	return new Promise( async ( resolve, reject ) => {
 		/*=== f2c_start get_system_admin_domains_list ===*/
-		const sds: SystemDomain[] = await adb_query_all( req.db, `FOR sd IN system_domains SORT sd.name RETURN sd` );
+		const sds: SystemDomainAdmin[] = await adb_find_all( req.db, COLL_SYSTEM_DOMAINS, {}, SystemDomainAdminKeys, { sort: [ { field: 'name' } ] } );
 
 		return cback ? cback( null, sds ) : resolve( sds );
 		/*=== f2c_end get_system_admin_domains_list ===*/
