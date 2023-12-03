@@ -39,7 +39,7 @@ type Permission = {
 const permissions: Record<string, Permission> = {
 };
 
-const domain_get = async ( id: string = null, code: string = null ) => {
+export const domain_get = async ( id: string = null, code: string = null ) => {
 	const [ filters, values ] = adb_prepare_filters( 'sd', { id, code } );
 	return await adb_query_one( _liwe.db, `FOR sd IN system_domains ${ filters } RETURN sd`, values );
 };
@@ -427,11 +427,11 @@ export const get_system_domain_create_invite = ( req: ILRequest, id_domain: stri
 		// create the token
 		const token: Record<string, string | number> = {
 			id_domain,
-			expire,
+			expire: expire.toString(),
 			created: Date.now(),
 		};
 
-		token[ 'challenge' ] = challenge_create( [ id_domain, expire.toString(), token.created.toString() ] );
+		token[ 'challenge' ] = challenge_create( [ id_domain, expire.toString(), token.created.toString() ], true );
 
 		// convert the token to a base64 string
 		const token_str = Buffer.from( JSON.stringify( token ) ).toString( 'base64' );
