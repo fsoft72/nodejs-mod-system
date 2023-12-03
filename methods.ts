@@ -30,6 +30,8 @@ import { Session } from '../session/types';
 import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one, adb_collection_init, adb_del_one } from '../../liwe/db/arango';
 import { send_mail } from '../../liwe/mail';
 import { perm_available } from '../../liwe/auth';
+import { User } from '../user/types';
+import { user_get } from '../user/methods';
 
 type Permission = {
 	name: string,
@@ -386,6 +388,8 @@ export const get_system_domain_current = ( req: ILRequest, cback: LCback = null 
 		/*=== f2c_start get_system_domain_current ===*/
 		let domain: SystemDomain;
 
+		// console.log( "=== CURRENT: ", req.user );
+
 		// if the user is logged, returns the domain from the session
 		if ( req.user ) {
 			domain = await system_domain_get_by_session( req );
@@ -523,6 +527,7 @@ export const system_domain_get_by_session = ( req: ILRequest, cback: LCback = nu
 		/*=== f2c_start system_domain_get_by_session ===*/
 		let sd: SystemDomain = null;
 
+		/*
 		if ( !req.session ) {
 			if ( req.user ) {
 				const sess: Session = await session_get( req, ( req.user as any ).session_key, true );
@@ -532,8 +537,18 @@ export const system_domain_get_by_session = ( req: ILRequest, cback: LCback = nu
 		} else {
 			sd = await system_domain_get_by_code( req.session.domain_code );
 		}
+		*/
+
+		if ( req.user ) {
+			const user: User = await user_get( req.user.id );
+
+			if ( user ) sd = await system_domain_get_by_code( user.domain );
+
+			// console.log( "===== DOMAIN: ", sd );
+		}
 
 		if ( !sd ) sd = await system_domain_get_default();
+
 
 		return cback ? cback( null, sd ) : resolve( sd );
 		/*=== f2c_end system_domain_get_by_session ===*/
