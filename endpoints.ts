@@ -11,9 +11,9 @@ import { perms } from '../../liwe/auth';
 
 import {
 	// endpoints function
-	delete_system_admin_domain_del, get_system_admin_domains_list, get_system_admin_permissions_list, get_system_domain_current, get_system_domains_list,
-	get_system_theme_get, patch_system_admin_domain_update, patch_system_admin_reset_id, patch_system_admin_theme_set, post_system_admin_domain_add,
-	post_system_domain_set, post_system_email_test,
+	delete_system_admin_domain_del, get_system_admin_domains_list, get_system_admin_permissions_list, get_system_domain_create_invite, get_system_domain_current,
+	get_system_domains_list, get_system_theme_get, patch_system_admin_domain_update, patch_system_admin_reset_id, patch_system_admin_theme_set,
+	post_system_admin_domain_add, post_system_domain_set, post_system_email_test,
 	// functions
 	system_db_init, system_domain_get_by_code, system_domain_get_by_id, system_domain_get_by_session, system_domain_get_default,
 	system_permissions_register,
@@ -189,6 +189,21 @@ export const init = ( liwe: ILiWE ) => {
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { domain } );
+		} );
+	} );
+
+	app.get ( '/api/system/domain/create/invite', perms( [ "is-logged" ] ), ( req: ILRequest, res: ILResponse ) => {
+		const { id_domain, expire, ___errors } = typed_dict( req.query as any, [
+			{ name: "id_domain", type: "string", required: true },
+			{ name: "expire", type: "number" }
+		] );
+
+		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+
+		get_system_domain_create_invite ( req, id_domain, expire, ( err: ILError, token: string ) => {
+			if ( err ) return send_error( res, err );
+
+			send_ok( res, { token } );
 		} );
 	} );
 

@@ -24,7 +24,7 @@ const COLL_SYSTEM_DOMAINS = "system_domains";
 const COLL_SYSTEM_THEMES = "system_themes";
 
 /*=== f2c_start __file_header === */
-import { keys_filter, merge, set_attr, mkid } from '../../liwe/utils';
+import { keys_filter, merge, set_attr, mkid, challenge_create } from '../../liwe/utils';
 import { session_get, session_set_val } from '../session/methods';
 import { Session } from '../session/types';
 import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one, adb_collection_init, adb_del_one } from '../../liwe/db/arango';
@@ -398,6 +398,46 @@ export const get_system_domain_current = ( req: ILRequest, cback: LCback = null 
 
 		return cback ? cback( null, domain ) : resolve( domain );
 		/*=== f2c_end get_system_domain_current ===*/
+	} );
+};
+// }}}
+
+// {{{ get_system_domain_create_invite ( req: ILRequest, id_domain: string, expire: number = 0, cback: LCBack = null ): Promise<string>
+/**
+ *
+ * This endpoint creates an invitation token for a domain.
+ * The invitation can have an `expire` date, so you can create temporary tokens.
+ * The `expire` field is expressed in `minutes`. If you specify a value different that `0`, the token will last the `expire` minutes.
+ * If the `expire` is set to `0` (default), the token does not expire.
+ *
+ * @param id_domain - The Domain ID to create the invite for [req]
+ * @param expire - The amount of minutes the link is valid [opt]
+ *
+ * @return token: string
+ *
+ */
+export const get_system_domain_create_invite = ( req: ILRequest, id_domain: string, expire: number = 0, cback: LCback = null ): Promise<string> => {
+	return new Promise( async ( resolve, reject ) => {
+		/*=== f2c_start get_system_domain_create_invite ===*/
+		const err = { message: _( 'Domain not found' ) };
+		const domain: SystemDomain = await system_domain_get_by_id( id_domain );
+
+		if ( !domain ) return cback ? cback( err ) : reject( err );
+
+		// create the token
+		const token: Record<string, string | number> = {
+			id_domain,
+			expire,
+			created: Date.now(),
+		};
+
+		token[ 'challenge' ] = challenge_create( [ id_domain, expire.toString(), token.created.toString() ] );
+
+		// convert the token to a base64 string
+		const token_str = Buffer.from( JSON.stringify( token ) ).toString( 'base64' );
+
+		return cback ? cback( null, token_str ) : resolve( token_str );
+		/*=== f2c_end get_system_domain_create_invite ===*/
 	} );
 };
 // }}}
