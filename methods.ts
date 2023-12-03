@@ -8,8 +8,8 @@ import { $l } from '../../liwe/locale';
 
 
 import {
-	SystemDomain, SystemDomainAdmin, SystemDomainAdminKeys, SystemDomainKeys, SystemTheme,
-	SystemThemeKeys,
+	SystemDomain, SystemDomainAdmin, SystemDomainAdminKeys, SystemDomainKeys, SystemDomainPublic,
+	SystemDomainPublicKeys, SystemTheme, SystemThemeKeys,
 } from './types';
 
 import _module_perms from './perms';
@@ -370,6 +370,34 @@ export const get_system_admin_permissions_list = ( req: ILRequest, cback: LCback
 
 		return cback ? cback( null, res ) : resolve( res );
 		/*=== f2c_end get_system_admin_permissions_list ===*/
+	} );
+};
+// }}}
+
+// {{{ get_system_domain_current ( req: ILRequest, cback: LCBack = null ): Promise<SystemDomainPublic>
+/**
+ *
+ *
+ * @return domain: SystemDomainPublic
+ *
+ */
+export const get_system_domain_current = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomainPublic> => {
+	return new Promise( async ( resolve, reject ) => {
+		/*=== f2c_start get_system_domain_current ===*/
+		let domain: SystemDomain;
+
+		// if the user is logged, returns the domain from the session
+		if ( req.user ) {
+			domain = await system_domain_get_by_session( req );
+		} else {
+			// otherwise, returns the default domain
+			domain = await system_domain_get_default();
+		}
+
+		keys_filter( domain, SystemDomainPublicKeys );
+
+		return cback ? cback( null, domain ) : resolve( domain );
+		/*=== f2c_end get_system_domain_current ===*/
 	} );
 };
 // }}}

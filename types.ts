@@ -57,3 +57,17 @@ export const SystemDomainAdminKeys = {
 	'visible': { type: 'boolean', priv: false },
 };
 
+/** SystemDomainPublic */
+export interface SystemDomainPublic {
+	/** the main id field */
+	id: string;
+	code?: string;
+	name?: string;
+}
+
+export const SystemDomainPublicKeys = {
+	'id': { type: 'string', priv: false },
+	'code': { type: 'string', priv: false },
+	'name': { type: 'string', priv: false },
+};
+

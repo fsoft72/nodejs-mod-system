@@ -11,17 +11,17 @@ import { perms } from '../../liwe/auth';
 
 import {
 	// endpoints function
-	delete_system_admin_domain_del, get_system_admin_domains_list, get_system_admin_permissions_list, get_system_domains_list, get_system_theme_get,
-	patch_system_admin_domain_update, patch_system_admin_reset_id, patch_system_admin_theme_set, post_system_admin_domain_add, post_system_domain_set,
-	post_system_email_test,
+	delete_system_admin_domain_del, get_system_admin_domains_list, get_system_admin_permissions_list, get_system_domain_current, get_system_domains_list,
+	get_system_theme_get, patch_system_admin_domain_update, patch_system_admin_reset_id, patch_system_admin_theme_set, post_system_admin_domain_add,
+	post_system_domain_set, post_system_email_test,
 	// functions
 	system_db_init, system_domain_get_by_code, system_domain_get_by_id, system_domain_get_by_session, system_domain_get_default,
 	system_permissions_register,
 } from './methods';
 
 import {
-	SystemDomain, SystemDomainAdmin, SystemDomainAdminKeys, SystemDomainKeys, SystemTheme,
-	SystemThemeKeys,
+	SystemDomain, SystemDomainAdmin, SystemDomainAdminKeys, SystemDomainKeys, SystemDomainPublic,
+	SystemDomainPublicKeys, SystemTheme, SystemThemeKeys,
 } from './types';
 
 /*=== f2c_start __header ===*/
@@ -179,6 +179,16 @@ export const init = ( liwe: ILiWE ) => {
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { permissions } );
+		} );
+	} );
+
+	app.get ( '/api/system/domain/current', ( req: ILRequest, res: ILResponse ) => {
+		
+
+		get_system_domain_current ( req, ( err: ILError, domain: SystemDomainPublic ) => {
+			if ( err ) return send_error( res, err );
+
+			send_ok( res, { domain } );
 		} );
 	} );
 
