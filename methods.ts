@@ -527,7 +527,7 @@ export const system_domain_get_by_session = ( req: ILRequest, cback: LCback = nu
 		/*=== f2c_start system_domain_get_by_session ===*/
 		let sd: SystemDomain = null;
 
-		if ( req.user.domain ) {
+		if ( req?.user?.domain ) {
 			const res = { code: req.user.domain } as SystemDomain;
 			return cback ? cback( null, res ) : resolve( res );
 		}
