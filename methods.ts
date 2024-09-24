@@ -544,7 +544,7 @@ export const system_domain_get_by_session = ( req: ILRequest, cback: LCback = nu
 		}
 		*/
 
-		if ( req.user ) {
+		if ( req?.user ) {
 			const user: User = await user_get( req.user.id );
 
 			if ( user ) sd = await system_domain_get_by_code( user.domain );
