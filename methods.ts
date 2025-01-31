@@ -241,8 +241,6 @@ export const patch_system_admin_theme_set = ( req: ILRequest, changes?: any, cba
 		theme = await adb_record_add( req.db, COLL_SYSTEM_THEMES, theme, SystemThemeKeys );
 		theme.data = data;
 
-		console.log( "===== THEME: ", theme );
-
 		return cback ? cback( null, theme ) : resolve( theme );
 		/*=== f2c_end patch_system_admin_theme_set ===*/
 	} );
