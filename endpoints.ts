@@ -12,8 +12,8 @@ import { perms } from '../../liwe/auth';
 import {
 	// endpoints function
 	delete_system_admin_domain_del, get_system_admin_domains_list, get_system_admin_permissions_list, get_system_domain_create_invite, get_system_domain_current,
-	get_system_domains_list, get_system_theme_get, patch_system_admin_domain_update, patch_system_admin_reset_id, patch_system_admin_theme_set,
-	post_system_admin_domain_add, post_system_domain_set, post_system_email_test,
+	get_system_domains_list, get_system_theme_get, get_system_uptime, patch_system_admin_domain_update, patch_system_admin_reset_id,
+	patch_system_admin_theme_set, post_system_admin_domain_add, post_system_domain_set, post_system_email_test,
 	// functions
 	system_db_init, system_domain_get_by_code, system_domain_get_by_id, system_domain_get_by_session, system_domain_get_default,
 	system_permissions_register,
@@ -40,6 +40,7 @@ export const init = ( liwe: ILiWE ) => {
 		
 
 		get_system_domains_list ( req, ( err: ILError, domains: SystemDomain ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { domains } );
@@ -54,6 +55,7 @@ export const init = ( liwe: ILiWE ) => {
 		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		post_system_domain_set ( req, code, ( err: ILError, domain: SystemDomain ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { domain } );
@@ -70,6 +72,7 @@ export const init = ( liwe: ILiWE ) => {
 		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		post_system_admin_domain_add ( req, code, name, visible, ( err: ILError, domain: SystemDomain ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { domain } );
@@ -87,6 +90,7 @@ export const init = ( liwe: ILiWE ) => {
 		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		patch_system_admin_domain_update ( req, id, code, name, visible, ( err: ILError, domain: SystemDomain ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { domain } );
@@ -102,6 +106,7 @@ export const init = ( liwe: ILiWE ) => {
 		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		delete_system_admin_domain_del ( req, id, code, ( err: ILError, id_domain: string ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { id_domain } );
@@ -112,6 +117,7 @@ export const init = ( liwe: ILiWE ) => {
 		
 
 		get_system_admin_domains_list ( req, ( err: ILError, domains: SystemDomainAdmin ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { domains } );
@@ -126,6 +132,7 @@ export const init = ( liwe: ILiWE ) => {
 		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		patch_system_admin_theme_set ( req, changes, ( err: ILError, theme: SystemTheme ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { theme } );
@@ -136,6 +143,7 @@ export const init = ( liwe: ILiWE ) => {
 		
 
 		get_system_theme_get ( req, ( err: ILError, theme: SystemTheme ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { theme } );
@@ -152,6 +160,7 @@ export const init = ( liwe: ILiWE ) => {
 		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		patch_system_admin_reset_id ( req, id, new_id, collection, ( err: ILError, id: string ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { id } );
@@ -166,6 +175,7 @@ export const init = ( liwe: ILiWE ) => {
 		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		post_system_email_test ( req, email, ( err: ILError, result: boolean ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { result } );
@@ -176,6 +186,7 @@ export const init = ( liwe: ILiWE ) => {
 		
 
 		get_system_admin_permissions_list ( req, ( err: ILError, permissions: object ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { permissions } );
@@ -186,6 +197,7 @@ export const init = ( liwe: ILiWE ) => {
 		
 
 		get_system_domain_current ( req, ( err: ILError, domain: SystemDomainPublic ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { domain } );
@@ -201,9 +213,21 @@ export const init = ( liwe: ILiWE ) => {
 		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
 
 		get_system_domain_create_invite ( req, id_domain, expire, ( err: ILError, token: string ) => {
+			if ( err?.quiet ) return;
 			if ( err ) return send_error( res, err );
 
 			send_ok( res, { token } );
+		} );
+	} );
+
+	app.get ( '/api/system/uptime', ( req: ILRequest, res: ILResponse ) => {
+		
+
+		get_system_uptime ( req, ( err: ILError, uptime: number ) => {
+			if ( err?.quiet ) return;
+			if ( err ) return send_error( res, err );
+
+			send_ok( res, { uptime } );
 		} );
 	} );
 

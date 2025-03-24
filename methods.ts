@@ -444,6 +444,27 @@ export const get_system_domain_create_invite = ( req: ILRequest, id_domain: stri
 };
 // }}}
 
+// {{{ get_system_uptime ( req: ILRequest, cback: LCBack = null ): Promise<number>
+/**
+ *
+ * Returns the system uptime (in seconds)
+ *
+ *
+ * @return uptime: number
+ *
+ */
+export const get_system_uptime = ( req: ILRequest, cback: LCback = null ): Promise<number> => {
+	return new Promise( async ( resolve, reject ) => {
+		/*=== f2c_start get_system_uptime ===*/
+		const d = new Date().getTime();
+		const uptime = Math.floor( ( d - _liwe.startDate ) / 1000 );
+
+		return cback ? cback( null, uptime ) : resolve( uptime );
+		/*=== f2c_end get_system_uptime ===*/
+	} );
+};
+// }}}
+
 // {{{ system_domain_get_default ( cback: LCBack = null ): Promise<SystemDomain>
 /**
  *
