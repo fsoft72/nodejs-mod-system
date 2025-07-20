@@ -4,6 +4,7 @@
  */
 
 import { ILRequest, ILResponse, LCback, ILiweConfig, ILError, ILiWE } from '../../liwe/types';
+import { LiWEError, LiWEResponse, responseError, responseSuccess } from '../../liwe/response';
 import { $l } from '../../liwe/locale';
 
 
@@ -67,23 +68,21 @@ const theme_get = async ( req: ILRequest, clean: boolean = false ) => {
  * @return domains: SystemDomain
  *
  */
-export const get_system_domains_list = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomain[]> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start get_system_domains_list ===*/
-		const sds: SystemDomain[] = await adb_query_all( req.db, `FOR sd IN system_domains FILTER sd.visible == true SORT sd.name RETURN sd` );
+export const get_system_domains_list = async ( req: ILRequest, ): Promise<LiWEResponse<SystemDomain[]>> => {
+	/*=== f2c_start get_system_domains_list ===*/
+	const sds: SystemDomain[] = await adb_query_all( req.db, `FOR sd IN system_domains FILTER sd.visible == true SORT sd.name RETURN sd` );
 
-		if ( !sds || !sds.length )
-			return cback ? cback( null, sds ) : resolve( sds );
+	if ( !sds || !sds.length )
+		return responseSuccess( sds );
 
-		sds.forEach( ( sd ) => keys_filter( sd, SystemDomainKeys ) );
+	sds.forEach( ( sd ) => keys_filter( sd, SystemDomainKeys ) );
 
-		return cback ? cback( null, sds ) : resolve( sds );
-		/*=== f2c_end get_system_domains_list ===*/
-	} );
+	return responseSuccess( sds );
+	/*=== f2c_end get_system_domains_list ===*/
 };
 // }}}
 
-// {{{ post_system_domain_set ( req: ILRequest, code: string, cback: LCBack = null ): Promise<SystemDomain>
+// {{{ post_system_domain_set ( req: ILRequest, code: stringcback: LCBack = null ): Promise<SystemDomain>
 /**
  *
  * Set the current domain for the user
@@ -93,23 +92,21 @@ export const get_system_domains_list = ( req: ILRequest, cback: LCback = null ):
  * @return domain: SystemDomain
  *
  */
-export const post_system_domain_set = ( req: ILRequest, code: string, cback: LCback = null ): Promise<SystemDomain> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start post_system_domain_set ===*/
-		const sd: SystemDomain = await domain_get( null, code );
-		const err = { message: 'Domain not found' };
-		if ( !sd ) return cback ? cback( err ) : reject( err );
+export const post_system_domain_set = async ( req: ILRequest, code: string ): Promise<LiWEResponse<SystemDomain>> => {
+	/*=== f2c_start post_system_domain_set ===*/
+	const sd: SystemDomain = await domain_get( null, code );
+	const err = { message: 'Domain not found' };
+	if ( !sd ) return responseError( err.message );
 
-		await session_set_val( req, 'id_domain', sd.id );
-		await session_set_val( req, 'domain_code', sd.code );
+	await session_set_val( req, 'id_domain', sd.id );
+	await session_set_val( req, 'domain_code', sd.code );
 
-		return cback ? cback( null, null ) : resolve( null );
-		/*=== f2c_end post_system_domain_set ===*/
-	} );
+	return responseSuccess( null );
+	/*=== f2c_end post_system_domain_set ===*/
 };
 // }}}
 
-// {{{ post_system_admin_domain_add ( req: ILRequest, code: string, name: string, visible?: boolean, cback: LCBack = null ): Promise<SystemDomain>
+// {{{ post_system_admin_domain_add ( req: ILRequest, code: string, name: string, visible?: booleancback: LCBack = null ): Promise<SystemDomain>
 /**
  *
  * Adds a new domain to the System.
@@ -121,24 +118,22 @@ export const post_system_domain_set = ( req: ILRequest, code: string, cback: LCb
  * @return domain: SystemDomain
  *
  */
-export const post_system_admin_domain_add = ( req: ILRequest, code: string, name: string, visible?: boolean, cback: LCback = null ): Promise<SystemDomain> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start post_system_admin_domain_add ===*/
-		const dom: SystemDomain = { code: code.toLowerCase(), name, visible, id: mkid( "system" ) };
-		const sd: SystemDomain = await system_domain_get_by_code( code );
-		const err = { message: 'Domain already exists' };
+export const post_system_admin_domain_add = async ( req: ILRequest, code: string, name: string, visible?: boolean ): Promise<LiWEResponse<SystemDomain>> => {
+	/*=== f2c_start post_system_admin_domain_add ===*/
+	const dom: SystemDomain = { code: code.toLowerCase(), name, visible, id: mkid( "system" ) };
+	const sd: SystemDomain = await system_domain_get_by_code( code );
+	const err = { message: 'Domain already exists' };
 
-		if ( sd ) return cback ? cback( err ) : reject( err );
+	if ( sd ) return responseError( err.message );
 
-		await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, dom );
+	await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, dom );
 
-		return cback ? cback( null, dom ) : resolve( dom );
-		/*=== f2c_end post_system_admin_domain_add ===*/
-	} );
+	return responseSuccess( dom );
+	/*=== f2c_end post_system_admin_domain_add ===*/
 };
 // }}}
 
-// {{{ patch_system_admin_domain_update ( req: ILRequest, id: string, code?: string, name?: string, visible?: boolean, cback: LCBack = null ): Promise<SystemDomain>
+// {{{ patch_system_admin_domain_update ( req: ILRequest, id: string, code?: string, name?: string, visible?: booleancback: LCBack = null ): Promise<SystemDomain>
 /**
  *
  * Updates a domain in the system. The `id` field must be provided.
@@ -151,30 +146,28 @@ export const post_system_admin_domain_add = ( req: ILRequest, code: string, name
  * @return domain: SystemDomain
  *
  */
-export const patch_system_admin_domain_update = ( req: ILRequest, id: string, code?: string, name?: string, visible?: boolean, cback: LCback = null ): Promise<SystemDomain> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start patch_system_admin_domain_update ===*/
-		let dom: SystemDomain = await system_domain_get_by_id( id );
-		const err = { message: 'Domain code already in use by another domain' };
+export const patch_system_admin_domain_update = async ( req: ILRequest, id: string, code?: string, name?: string, visible?: boolean ): Promise<LiWEResponse<SystemDomain>> => {
+	/*=== f2c_start patch_system_admin_domain_update ===*/
+	let dom: SystemDomain = await system_domain_get_by_id( id );
+	const err = { message: 'Domain code already in use by another domain' };
 
-		if ( dom.code != code ) {
-			const sd = await system_domain_get_by_code( code );
-			if ( sd ) return cback ? cback( err ) : reject( err );
-		}
+	if ( dom.code != code ) {
+		const sd = await system_domain_get_by_code( code );
+		if ( sd ) return responseError( err.message );
+	}
 
-		set_attr( dom, 'code', code );
-		set_attr( dom, 'name', name );
-		set_attr( dom, 'visible', visible );
+	set_attr( dom, 'code', code );
+	set_attr( dom, 'name', name );
+	set_attr( dom, 'visible', visible );
 
-		dom = await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, dom );
+	dom = await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, dom );
 
-		return cback ? cback( null, dom ) : resolve( dom );
-		/*=== f2c_end patch_system_admin_domain_update ===*/
-	} );
+	return responseSuccess( dom );
+	/*=== f2c_end patch_system_admin_domain_update ===*/
 };
 // }}}
 
-// {{{ delete_system_admin_domain_del ( req: ILRequest, id?: string, code?: string, cback: LCBack = null ): Promise<string>
+// {{{ delete_system_admin_domain_del ( req: ILRequest, id?: string, code?: stringcback: LCBack = null ): Promise<string>
 /**
  *
  * Delete a domain from the system. You can specify both `id` and `code` for deletion
@@ -185,19 +178,17 @@ export const patch_system_admin_domain_update = ( req: ILRequest, id: string, co
  * @return id_domain: string
  *
  */
-export const delete_system_admin_domain_del = ( req: ILRequest, id?: string, code?: string, cback: LCback = null ): Promise<string> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start delete_system_admin_domain_del ===*/
-		const sd: SystemDomain = await domain_get( id, code );
-		const err = { message: "Domain not found" };
+export const delete_system_admin_domain_del = async ( req: ILRequest, id?: string, code?: string ): Promise<LiWEResponse<string>> => {
+	/*=== f2c_start delete_system_admin_domain_del ===*/
+	const sd: SystemDomain = await domain_get( id, code );
+	const err = { message: "Domain not found" };
 
-		if ( !sd ) return cback ? cback( err ) : reject( err );
+	if ( !sd ) return responseError( err.message );
 
-		await adb_del_one( req.db, COLL_SYSTEM_DOMAINS, sd.id );
+	await adb_del_one( req.db, COLL_SYSTEM_DOMAINS, sd.id );
 
-		return cback ? cback( null, sd.id ) : resolve( sd.id );
-		/*=== f2c_end delete_system_admin_domain_del ===*/
-	} );
+	return responseSuccess( sd.id );
+	/*=== f2c_end delete_system_admin_domain_del ===*/
 };
 // }}}
 
@@ -210,18 +201,16 @@ export const delete_system_admin_domain_del = ( req: ILRequest, id?: string, cod
  * @return domains: SystemDomainAdmin
  *
  */
-export const get_system_admin_domains_list = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomainAdmin[]> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start get_system_admin_domains_list ===*/
-		const sds: SystemDomainAdmin[] = await adb_find_all( req.db, COLL_SYSTEM_DOMAINS, {}, SystemDomainAdminKeys, { sort: [ { field: 'name' } ] } );
+export const get_system_admin_domains_list = async ( req: ILRequest, ): Promise<LiWEResponse<SystemDomainAdmin[]>> => {
+	/*=== f2c_start get_system_admin_domains_list ===*/
+	const sds: SystemDomainAdmin[] = await adb_find_all( req.db, COLL_SYSTEM_DOMAINS, {}, SystemDomainAdminKeys, { sort: [ { field: 'name' } ] } );
 
-		return cback ? cback( null, sds ) : resolve( sds );
-		/*=== f2c_end get_system_admin_domains_list ===*/
-	} );
+	return responseSuccess( sds );
+	/*=== f2c_end get_system_admin_domains_list ===*/
 };
 // }}}
 
-// {{{ patch_system_admin_theme_set ( req: ILRequest, changes?: any, cback: LCBack = null ): Promise<SystemTheme>
+// {{{ patch_system_admin_theme_set ( req: ILRequest, changes?: anycback: LCBack = null ): Promise<SystemTheme>
 /**
  *
  * Changes something in the system theme.
@@ -231,19 +220,17 @@ export const get_system_admin_domains_list = ( req: ILRequest, cback: LCback = n
  * @return theme: SystemTheme
  *
  */
-export const patch_system_admin_theme_set = ( req: ILRequest, changes?: any, cback: LCback = null ): Promise<SystemTheme> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start patch_system_admin_theme_set ===*/
-		let theme: SystemTheme = await theme_get( req );
-		const data = { ...theme.data };
+export const patch_system_admin_theme_set = async ( req: ILRequest, changes?: any ): Promise<LiWEResponse<SystemTheme>> => {
+	/*=== f2c_start patch_system_admin_theme_set ===*/
+	let theme: SystemTheme = await theme_get( req );
+	const data = { ...theme.data };
 
-		merge( data, changes );
-		theme = await adb_record_add( req.db, COLL_SYSTEM_THEMES, theme, SystemThemeKeys );
-		theme.data = data;
+	merge( data, changes );
+	theme = await adb_record_add( req.db, COLL_SYSTEM_THEMES, theme, SystemThemeKeys );
+	theme.data = data;
 
-		return cback ? cback( null, theme ) : resolve( theme );
-		/*=== f2c_end patch_system_admin_theme_set ===*/
-	} );
+	return responseSuccess( theme );
+	/*=== f2c_end patch_system_admin_theme_set ===*/
 };
 // }}}
 
@@ -254,18 +241,16 @@ export const patch_system_admin_theme_set = ( req: ILRequest, changes?: any, cba
  * @return theme: SystemTheme
  *
  */
-export const get_system_theme_get = ( req: ILRequest, cback: LCback = null ): Promise<SystemTheme> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start get_system_theme_get ===*/
-		const theme: SystemTheme = await theme_get( req, true );
+export const get_system_theme_get = async ( req: ILRequest, ): Promise<LiWEResponse<SystemTheme>> => {
+	/*=== f2c_start get_system_theme_get ===*/
+	const theme: SystemTheme = await theme_get( req, true );
 
-		return cback ? cback( null, theme ) : resolve( theme );
-		/*=== f2c_end get_system_theme_get ===*/
-	} );
+	return responseSuccess( theme );
+	/*=== f2c_end get_system_theme_get ===*/
 };
 // }}}
 
-// {{{ patch_system_admin_reset_id ( req: ILRequest, id: string, new_id: string, collection: string, cback: LCBack = null ): Promise<string>
+// {{{ patch_system_admin_reset_id ( req: ILRequest, id: string, new_id: string, collection: stringcback: LCBack = null ): Promise<string>
 /**
  *
  * Force an id to be changed on the system.
@@ -278,20 +263,18 @@ export const get_system_theme_get = ( req: ILRequest, cback: LCback = null ): Pr
  * @return id: string
  *
  */
-export const patch_system_admin_reset_id = ( req: ILRequest, id: string, new_id: string, collection: string, cback: LCback = null ): Promise<string> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start patch_system_admin_reset_id ===*/
-		const query = `FOR d IN ${ collection } FILTER d.id == '${ id }' UPDATE d WITH { id: '${ new_id }' } IN ${ collection }`;
+export const patch_system_admin_reset_id = async ( req: ILRequest, id: string, new_id: string, collection: string ): Promise<LiWEResponse<string>> => {
+	/*=== f2c_start patch_system_admin_reset_id ===*/
+	const query = `FOR d IN ${ collection } FILTER d.id == '${ id }' UPDATE d WITH { id: '${ new_id }' } IN ${ collection }`;
 
-		await req.db.query( query );
+	await req.db.query( query );
 
-		return cback ? cback( null, new_id ) : resolve( new_id );
-		/*=== f2c_end patch_system_admin_reset_id ===*/
-	} );
+	return responseSuccess( new_id );
+	/*=== f2c_end patch_system_admin_reset_id ===*/
 };
 // }}}
 
-// {{{ post_system_email_test ( req: ILRequest, email: string, cback: LCBack = null ): Promise<boolean>
+// {{{ post_system_email_test ( req: ILRequest, email: stringcback: LCBack = null ): Promise<boolean>
 /**
  *
  * This endpoint tests email sending.
@@ -302,31 +285,29 @@ export const patch_system_admin_reset_id = ( req: ILRequest, id: string, new_id:
  * @return result: boolean
  *
  */
-export const post_system_email_test = ( req: ILRequest, email: string, cback: LCback = null ): Promise<boolean> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start post_system_email_test ===*/
-		const err = { message: 'Please check smtp.send_for_real in the config file' };
-		if ( req.cfg.smtp.send_for_real == false )
-			return cback ? cback( err, false ) : reject( err );
+export const post_system_email_test = async ( req: ILRequest, email: string ): Promise<LiWEResponse<boolean>> => {
+	/*=== f2c_start post_system_email_test ===*/
+	const err = { message: 'Please check smtp.send_for_real in the config file' };
+	if ( req.cfg.smtp.send_for_real == false )
+		return responseError( err.message );
 
-		try {
-			await send_mail(
-				"LiWE System Test Email",
-				"This is a test email from LiWE",
-				"This is a <b>test email</b> from LiWE",
-				email,
-				req.cfg.smtp.from,
-				req.cfg.smtp.from,
-				null,
-			);
+	try {
+		await send_mail(
+			"LiWE System Test Email",
+			"This is a test email from LiWE",
+			"This is a <b>test email</b> from LiWE",
+			email,
+			req.cfg.smtp.from,
+			req.cfg.smtp.from,
+			null,
+		);
 
-			return cback ? cback( null, true ) : resolve( true );
-		} catch ( e ) {
-			err.message = e.message;
-			return cback ? cback( err, false ) : reject( err );
-		}
-		/*=== f2c_end post_system_email_test ===*/
-	} );
+		return responseSuccess( true );
+	} catch ( e ) {
+		err.message = e.message;
+		return responseError( err.message );
+	}
+	/*=== f2c_end post_system_email_test ===*/
 };
 // }}}
 
@@ -343,34 +324,32 @@ export const post_system_email_test = ( req: ILRequest, email: string, cback: LC
  * @return permissions: object
  *
  */
-export const get_system_admin_permissions_list = ( req: ILRequest, cback: LCback = null ): Promise<object> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start get_system_admin_permissions_list ===*/
+export const get_system_admin_permissions_list = async ( req: ILRequest, ): Promise<LiWEResponse<object>> => {
+	/*=== f2c_start get_system_admin_permissions_list ===*/
 
-		// if the user has system.admin, return all permissions
-		if ( perm_available( req.user, [ 'system.admin' ] ) ) {
-			return cback ? cback( null, permissions ) : resolve( permissions );
-		}
+	// if the user has system.admin, return all permissions
+	if ( perm_available( req.user, [ 'system.admin' ] ) ) {
+		return responseSuccess( permissions );
+	}
 
-		// otherwise, return only the permissions the user already has
-		const res: Record<string, Record<string, string>> = {};
-		const mods = Object.keys( permissions ) as string[] ?? [];
+	// otherwise, return only the permissions the user already has
+	const res: Record<string, Record<string, string>> = {};
+	const mods = Object.keys( permissions ) as string[] ?? [];
 
-		mods.forEach( ( module: string ) => {
-			const perms: Record<string, string> = permissions[ module ];
-			const kp = Object.keys( perms ) as string[] ?? [];
-			kp.forEach( ( k: string ) => {
-				const txt = perms[ k ];
-				if ( perm_available( req.user, [ k ] ) ) {
-					if ( !res[ module ] ) res[ module ] = {};
-					res[ module ][ k ] = txt;
-				}
-			} );
+	mods.forEach( ( module: string ) => {
+		const perms: Record<string, string> = permissions[ module ];
+		const kp = Object.keys( perms ) as string[] ?? [];
+		kp.forEach( ( k: string ) => {
+			const txt = perms[ k ];
+			if ( perm_available( req.user, [ k ] ) ) {
+				if ( !res[ module ] ) res[ module ] = {};
+				res[ module ][ k ] = txt;
+			}
 		} );
-
-		return cback ? cback( null, res ) : resolve( res );
-		/*=== f2c_end get_system_admin_permissions_list ===*/
 	} );
+
+	return responseSuccess( res );
+	/*=== f2c_end get_system_admin_permissions_list ===*/
 };
 // }}}
 
@@ -381,30 +360,28 @@ export const get_system_admin_permissions_list = ( req: ILRequest, cback: LCback
  * @return domain: SystemDomainPublic
  *
  */
-export const get_system_domain_current = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomainPublic> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start get_system_domain_current ===*/
-		let domain: SystemDomain;
+export const get_system_domain_current = async ( req: ILRequest, ): Promise<LiWEResponse<SystemDomainPublic>> => {
+	/*=== f2c_start get_system_domain_current ===*/
+	let domain: SystemDomain;
 
-		// console.log( "=== CURRENT: ", req.user );
+	// console.log( "=== CURRENT: ", req.user );
 
-		// if the user is logged, returns the domain from the session
-		if ( req.user ) {
-			domain = await system_domain_get_by_session( req );
-		} else {
-			// otherwise, returns the default domain
-			domain = await system_domain_get_default();
-		}
+	// if the user is logged, returns the domain from the session
+	if ( req.user ) {
+		domain = await system_domain_get_by_session( req );
+	} else {
+		// otherwise, returns the default domain
+		domain = await system_domain_get_default();
+	}
 
-		keys_filter( domain, SystemDomainPublicKeys );
+	keys_filter( domain, SystemDomainPublicKeys );
 
-		return cback ? cback( null, domain ) : resolve( domain );
-		/*=== f2c_end get_system_domain_current ===*/
-	} );
+	return responseSuccess( domain );
+	/*=== f2c_end get_system_domain_current ===*/
 };
 // }}}
 
-// {{{ get_system_domain_create_invite ( req: ILRequest, id_domain: string, expire: number = 0, cback: LCBack = null ): Promise<string>
+// {{{ get_system_domain_create_invite ( req: ILRequest, id_domain: string, expire: number = 0cback: LCBack = null ): Promise<string>
 /**
  *
  * This endpoint creates an invitation token for a domain.
@@ -418,29 +395,27 @@ export const get_system_domain_current = ( req: ILRequest, cback: LCback = null 
  * @return token: string
  *
  */
-export const get_system_domain_create_invite = ( req: ILRequest, id_domain: string, expire: number = 0, cback: LCback = null ): Promise<string> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start get_system_domain_create_invite ===*/
-		const err = { message: _( 'Domain not found' ) };
-		const domain: SystemDomain = await system_domain_get_by_id( id_domain );
+export const get_system_domain_create_invite = async ( req: ILRequest, id_domain: string, expire: number = 0 ): Promise<LiWEResponse<string>> => {
+	/*=== f2c_start get_system_domain_create_invite ===*/
+	const err = { message: _( 'Domain not found' ) };
+	const domain: SystemDomain = await system_domain_get_by_id( id_domain );
 
-		if ( !domain ) return cback ? cback( err ) : reject( err );
+	if ( !domain ) return responseError( err.message );
 
-		// create the token
-		const token: Record<string, string | number> = {
-			id_domain,
-			expire: expire.toString(),
-			created: Date.now(),
-		};
+	// create the token
+	const token: Record<string, string | number> = {
+		id_domain,
+		expire: expire.toString(),
+		created: Date.now(),
+	};
 
-		token[ 'challenge' ] = challenge_create( [ id_domain, expire.toString(), token.created.toString() ], true );
+	token[ 'challenge' ] = challenge_create( [ id_domain, expire.toString(), token.created.toString() ], true );
 
-		// convert the token to a base64 string
-		const token_str = Buffer.from( JSON.stringify( token ) ).toString( 'base64' );
+	// convert the token to a base64 string
+	const token_str = Buffer.from( JSON.stringify( token ) ).toString( 'base64' );
 
-		return cback ? cback( null, token_str ) : resolve( token_str );
-		/*=== f2c_end get_system_domain_create_invite ===*/
-	} );
+	return responseSuccess( token_str );
+	/*=== f2c_end get_system_domain_create_invite ===*/
 };
 // }}}
 
@@ -453,15 +428,13 @@ export const get_system_domain_create_invite = ( req: ILRequest, id_domain: stri
  * @return uptime: number
  *
  */
-export const get_system_uptime = ( req: ILRequest, cback: LCback = null ): Promise<number> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start get_system_uptime ===*/
-		const d = new Date().getTime();
-		const uptime = Math.floor( ( d - _liwe.startDate ) / 1000 );
+export const get_system_uptime = async ( req: ILRequest, ): Promise<LiWEResponse<number>> => {
+	/*=== f2c_start get_system_uptime ===*/
+	const d = new Date().getTime();
+	const uptime = Math.floor( ( d - _liwe.startDate ) / 1000 );
 
-		return cback ? cback( null, uptime ) : resolve( uptime );
-		/*=== f2c_end get_system_uptime ===*/
-	} );
+	return responseSuccess( uptime );
+	/*=== f2c_end get_system_uptime ===*/
 };
 // }}}
 
@@ -474,14 +447,12 @@ export const get_system_uptime = ( req: ILRequest, cback: LCback = null ): Promi
  * @return : SystemDomain
  *
  */
-export const system_domain_get_default = ( cback: LCback = null ): Promise<SystemDomain> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start system_domain_get_default ===*/
-		const sd: SystemDomain = await system_domain_get_by_code( _liwe.cfg.app.domain );
+export const system_domain_get_default = async (): Promise<SystemDomain> => {
+	/*=== f2c_start system_domain_get_default ===*/
+	const sd: SystemDomain = await system_domain_get_by_code( _liwe.cfg.app.domain );
 
-		return cback ? cback( null, sd ) : resolve( sd );
-		/*=== f2c_end system_domain_get_default ===*/
-	} );
+	return sd;
+	/*=== f2c_end system_domain_get_default ===*/
 };
 // }}}
 
@@ -495,14 +466,12 @@ export const system_domain_get_default = ( cback: LCback = null ): Promise<Syste
  * @return : SystemDomain
  *
  */
-export const system_domain_get_by_id = ( id: string, cback: LCback = null ): Promise<SystemDomain> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start system_domain_get_by_id ===*/
-		const sd: SystemDomain = await domain_get( id );
+export const system_domain_get_by_id = async ( id: string, ): Promise<SystemDomain> => {
+	/*=== f2c_start system_domain_get_by_id ===*/
+	const sd: SystemDomain = await domain_get( id );
 
-		return cback ? cback( null, sd ) : resolve( sd );
-		/*=== f2c_end system_domain_get_by_id ===*/
-	} );
+	return sd;
+	/*=== f2c_end system_domain_get_by_id ===*/
 };
 // }}}
 
@@ -516,18 +485,16 @@ export const system_domain_get_by_id = ( id: string, cback: LCback = null ): Pro
  * @return : SystemDomain
  *
  */
-export const system_domain_get_by_code = ( code: string, cback: LCback = null ): Promise<SystemDomain> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start system_domain_get_by_code ===*/
-		let sd: SystemDomain = null;
-		if ( !code || code == '__system__' )
-			sd = await system_domain_get_default();
-		else
-			sd = await domain_get( null, code.toLowerCase() );
+export const system_domain_get_by_code = async ( code: string, ): Promise<SystemDomain> => {
+	/*=== f2c_start system_domain_get_by_code ===*/
+	let sd: SystemDomain = null;
+	if ( !code || code == '__system__' )
+		sd = await system_domain_get_default();
+	else
+		sd = await domain_get( null, code.toLowerCase() );
 
-		return cback ? cback( null, sd ) : resolve( sd );
-		/*=== f2c_end system_domain_get_by_code ===*/
-	} );
+	return sd;
+	/*=== f2c_end system_domain_get_by_code ===*/
 };
 // }}}
 
@@ -541,42 +508,39 @@ export const system_domain_get_by_code = ( code: string, cback: LCback = null ):
  * @return : SystemDomain
  *
  */
-export const system_domain_get_by_session = ( req: ILRequest, cback: LCback = null ): Promise<SystemDomain> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start system_domain_get_by_session ===*/
-		let sd: SystemDomain = null;
+export const system_domain_get_by_session = async ( req: ILRequest, ): Promise<SystemDomain> => {
+	/*=== f2c_start system_domain_get_by_session ===*/
+	let sd: SystemDomain = null;
 
-		if ( req?.user?.domain ) {
-			const res = { code: req.user.domain } as SystemDomain;
-			return cback ? cback( null, res ) : resolve( res );
+	if ( req?.user?.domain ) {
+		const res = { code: req.user.domain } as SystemDomain;
+		return res;
+	}
+
+	/*
+	if ( !req.session ) {
+		if ( req.user ) {
+			const sess: Session = await session_get( req, ( req.user as any ).session_key, true );
+			if ( sess.domain )
+				sd = await system_domain_get_by_code( sess.domain );
 		}
+	} else {
+		sd = await system_domain_get_by_code( req.session.domain_code );
+	}
+	*/
 
-		/*
-		if ( !req.session ) {
-			if ( req.user ) {
-				const sess: Session = await session_get( req, ( req.user as any ).session_key, true );
-				if ( sess.domain )
-					sd = await system_domain_get_by_code( sess.domain );
-			}
-		} else {
-			sd = await system_domain_get_by_code( req.session.domain_code );
-		}
-		*/
+	if ( req?.user ) {
+		const user: User = await user_get( req.user.id );
 
-		if ( req?.user ) {
-			const user: User = await user_get( req.user.id );
+		if ( user ) sd = await system_domain_get_by_code( user.domain );
 
-			if ( user ) sd = await system_domain_get_by_code( user.domain );
+		// console.log( "===== DOMAIN: ", sd );
+	}
 
-			// console.log( "===== DOMAIN: ", sd );
-		}
+	if ( !sd ) sd = await system_domain_get_default();
 
-		if ( !sd ) sd = await system_domain_get_default();
-
-
-		return cback ? cback( null, sd ) : resolve( sd );
-		/*=== f2c_end system_domain_get_by_session ===*/
-	} );
+	return sd;
+	/*=== f2c_end system_domain_get_by_session ===*/
 };
 // }}}
 
@@ -593,14 +557,12 @@ export const system_domain_get_by_session = ( req: ILRequest, cback: LCback = nu
  * @return : boolean
  *
  */
-export const system_permissions_register = ( module: string, perms: any, cback: LCback = null ): Promise<boolean> => {
-	return new Promise( async ( resolve, reject ) => {
-		/*=== f2c_start system_permissions_register ===*/
-		permissions[ module ] = perms || {};
+export const system_permissions_register = async ( module: string, perms: any, ): Promise<boolean> => {
+	/*=== f2c_start system_permissions_register ===*/
+	permissions[ module ] = perms || {};
 
-		return cback ? cback( null, true ) : resolve( true );
-		/*=== f2c_end system_permissions_register ===*/
-	} );
+	return true;
+	/*=== f2c_end system_permissions_register ===*/
 };
 // }}}
 
@@ -614,33 +576,33 @@ export const system_permissions_register = ( module: string, perms: any, cback: 
  * @return : boolean
  *
  */
-export const system_db_init = ( liwe: ILiWE, cback: LCback = null ): Promise<boolean> => {
-	return new Promise( async ( resolve, reject ) => {
-		_liwe = liwe;
+export const system_db_init = async ( liwe: ILiWE, ): Promise<boolean> => {
+	_liwe = liwe;
 
-		system_permissions_register( 'system', _module_perms );
+	system_permissions_register( 'system', _module_perms );
 
-		await adb_collection_init( liwe.db, COLL_SYSTEM_DOMAINS, [
-			{ type: "persistent", fields: [ "id" ], unique: true },
-			{ type: "persistent", fields: [ "code" ], unique: true },
-			{ type: "persistent", fields: [ "visible" ], unique: false },
-		], { drop: false } );
+	await adb_collection_init( liwe.db, COLL_SYSTEM_DOMAINS, [
+		{ type: "persistent", fields: [ "id" ], unique: true },
+		{ type: "persistent", fields: [ "code" ], unique: true },
+		{ type: "persistent", fields: [ "visible" ], unique: false },
+	], { drop: false } );
 
-		await adb_collection_init( liwe.db, COLL_SYSTEM_THEMES, [
-			{ type: "persistent", fields: [ "id" ], unique: true },
-			{ type: "persistent", fields: [ "domain" ], unique: true },
-		], { drop: false } );
+	await adb_collection_init( liwe.db, COLL_SYSTEM_THEMES, [
+		{ type: "persistent", fields: [ "id" ], unique: true },
+		{ type: "persistent", fields: [ "domain" ], unique: true },
+	], { drop: false } );
 
-		/*=== f2c_start system_db_init ===*/
-		let domain = liwe.cfg?.app?.domain || 'default';
+	/*=== f2c_start system_db_init ===*/
+	let domain = liwe.cfg?.app?.domain || 'default';
 
-		let sd: SystemDomain = await system_domain_get_by_code( domain );
-		if ( !sd ) {
-			sd = { id: mkid( "system" ), code: domain, name: "Default domain", visible: true };
-			await adb_record_add( liwe.db, COLL_SYSTEM_DOMAINS, sd );
-		}
-		/*=== f2c_end system_db_init ===*/
-	} );
+	let sd: SystemDomain = await system_domain_get_by_code( domain );
+	if ( !sd ) {
+		sd = { id: mkid( "system" ), code: domain, name: "Default domain", visible: true };
+		await adb_record_add( liwe.db, COLL_SYSTEM_DOMAINS, sd );
+	}
+	/*=== f2c_end system_db_init ===*/
+
+	return true;
 };
 // }}}
 

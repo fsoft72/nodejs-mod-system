@@ -8,6 +8,7 @@ import { send_error, send_ok, typed_dict } from "../../liwe/utils";
 import { locale_load } from '../../liwe/locale';
 
 import { perms } from '../../liwe/auth';
+import { LiWEResponse, sendParametersError, sendResponse } from '../../liwe/response';
 
 import {
 	// endpoints function
@@ -36,50 +37,38 @@ export const init = ( liwe: ILiWE ) => {
 	liwe.cfg.app.languages.map( ( l ) => locale_load( "system", l ) );
 	system_db_init ( liwe );
 
-	app.get ( '/api/system/domains/list', perms( [ "system.domain" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.get ( '/api/system/domains/list', perms( [ "system.domain" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		
 
-		get_system_domains_list ( req, ( err: ILError, domains: SystemDomain ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { domains } );
-		} );
+		const response = await get_system_domains_list ( req, );
+		sendResponse ( res, response );
 	} );
 
-	app.post ( '/api/system/domain/set', perms( [ "is-logged" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.post ( '/api/system/domain/set', perms( [ "is-logged" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		const { code, ___errors } = typed_dict( req.body, [
 			{ name: "code", type: "string", required: true }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
 
-		post_system_domain_set ( req, code, ( err: ILError, domain: SystemDomain ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { domain } );
-		} );
+		const response = await post_system_domain_set ( req, code);
+		sendResponse ( res, response );
 	} );
 
-	app.post ( '/api/system/admin/domain/add', perms( [ "system.domain" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.post ( '/api/system/admin/domain/add', perms( [ "system.domain" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		const { code, name, visible, ___errors } = typed_dict( req.body, [
 			{ name: "code", type: "string", required: true },
 			{ name: "name", type: "string", required: true },
 			{ name: "visible", type: "boolean" }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
 
-		post_system_admin_domain_add ( req, code, name, visible, ( err: ILError, domain: SystemDomain ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { domain } );
-		} );
+		const response = await post_system_admin_domain_add ( req, code, name, visible);
+		sendResponse ( res, response );
 	} );
 
-	app.patch ( '/api/system/admin/domain/update', perms( [ "system.domain" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.patch ( '/api/system/admin/domain/update', perms( [ "system.domain" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		const { id, code, name, visible, ___errors } = typed_dict( req.body, [
 			{ name: "id", type: "string", required: true },
 			{ name: "code", type: "string" },
@@ -87,148 +76,104 @@ export const init = ( liwe: ILiWE ) => {
 			{ name: "visible", type: "boolean" }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
 
-		patch_system_admin_domain_update ( req, id, code, name, visible, ( err: ILError, domain: SystemDomain ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { domain } );
-		} );
+		const response = await patch_system_admin_domain_update ( req, id, code, name, visible);
+		sendResponse ( res, response );
 	} );
 
-	app.delete ( '/api/system/admin/domain/del', perms( [ "system.domain" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.delete ( '/api/system/admin/domain/del', perms( [ "system.domain" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		const { id, code, ___errors } = typed_dict( req.body, [
 			{ name: "id", type: "string" },
 			{ name: "code", type: "string" }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
 
-		delete_system_admin_domain_del ( req, id, code, ( err: ILError, id_domain: string ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { id_domain } );
-		} );
+		const response = await delete_system_admin_domain_del ( req, id, code);
+		sendResponse ( res, response );
 	} );
 
-	app.get ( '/api/system/admin/domains/list', perms( [ "system.domain" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.get ( '/api/system/admin/domains/list', perms( [ "system.domain" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		
 
-		get_system_admin_domains_list ( req, ( err: ILError, domains: SystemDomainAdmin ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { domains } );
-		} );
+		const response = await get_system_admin_domains_list ( req, );
+		sendResponse ( res, response );
 	} );
 
-	app.patch ( '/api/system/admin/theme/set', perms( [ "system.theme" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.patch ( '/api/system/admin/theme/set', perms( [ "system.theme" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		const { changes, ___errors } = typed_dict( req.body, [
 			{ name: "changes", type: "any" }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
 
-		patch_system_admin_theme_set ( req, changes, ( err: ILError, theme: SystemTheme ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { theme } );
-		} );
+		const response = await patch_system_admin_theme_set ( req, changes);
+		sendResponse ( res, response );
 	} );
 
-	app.get ( '/api/system/theme/get', perms( [ "is-logged" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.get ( '/api/system/theme/get', perms( [ "is-logged" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		
 
-		get_system_theme_get ( req, ( err: ILError, theme: SystemTheme ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { theme } );
-		} );
+		const response = await get_system_theme_get ( req, );
+		sendResponse ( res, response );
 	} );
 
-	app.patch ( '/api/system/admin/reset/id', perms( [ "system.admin" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.patch ( '/api/system/admin/reset/id', perms( [ "system.admin" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		const { id, new_id, collection, ___errors } = typed_dict( req.body, [
 			{ name: "id", type: "string", required: true },
 			{ name: "new_id", type: "string", required: true },
 			{ name: "collection", type: "string", required: true }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
 
-		patch_system_admin_reset_id ( req, id, new_id, collection, ( err: ILError, id: string ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { id } );
-		} );
+		const response = await patch_system_admin_reset_id ( req, id, new_id, collection);
+		sendResponse ( res, response );
 	} );
 
-	app.post ( '/api/system/email/test', perms( [ "is-logged" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.post ( '/api/system/email/test', perms( [ "is-logged" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		const { email, ___errors } = typed_dict( req.body, [
 			{ name: "email", type: "string", required: true }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
 
-		post_system_email_test ( req, email, ( err: ILError, result: boolean ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { result } );
-		} );
+		const response = await post_system_email_test ( req, email);
+		sendResponse ( res, response );
 	} );
 
-	app.get ( '/api/system/admin/permissions/list', perms( [ "is-logged" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.get ( '/api/system/admin/permissions/list', perms( [ "is-logged" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		
 
-		get_system_admin_permissions_list ( req, ( err: ILError, permissions: object ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { permissions } );
-		} );
+		const response = await get_system_admin_permissions_list ( req, );
+		sendResponse ( res, response );
 	} );
 
-	app.get ( '/api/system/domain/current', ( req: ILRequest, res: ILResponse ) => {
+	app.get ( '/api/system/domain/current',  async ( req: ILRequest, res: ILResponse ) => {
 		
 
-		get_system_domain_current ( req, ( err: ILError, domain: SystemDomainPublic ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { domain } );
-		} );
+		const response = await get_system_domain_current ( req, );
+		sendResponse ( res, response );
 	} );
 
-	app.get ( '/api/system/domain/create/invite', perms( [ "is-logged" ] ), ( req: ILRequest, res: ILResponse ) => {
+	app.get ( '/api/system/domain/create/invite', perms( [ "is-logged" ] ),  async ( req: ILRequest, res: ILResponse ) => {
 		const { id_domain, expire, ___errors } = typed_dict( req.query as any, [
 			{ name: "id_domain", type: "string", required: true },
 			{ name: "expire", type: "number" }
 		] );
 
-		if ( ___errors.length ) return send_error ( res, { message: `Parameters error: ${___errors.join ( ', ' )}` } );
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
 
-		get_system_domain_create_invite ( req, id_domain, expire, ( err: ILError, token: string ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { token } );
-		} );
+		const response = await get_system_domain_create_invite ( req, id_domain, expire);
+		sendResponse ( res, response );
 	} );
 
-	app.get ( '/api/system/uptime', ( req: ILRequest, res: ILResponse ) => {
+	app.get ( '/api/system/uptime',  async ( req: ILRequest, res: ILResponse ) => {
 		
 
-		get_system_uptime ( req, ( err: ILError, uptime: number ) => {
-			if ( err?.quiet ) return;
-			if ( err ) return send_error( res, err );
-
-			send_ok( res, { uptime } );
-		} );
+		const response = await get_system_uptime ( req, );
+		sendResponse ( res, response );
 	} );
 
 };
