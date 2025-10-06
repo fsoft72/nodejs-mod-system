@@ -23,9 +23,10 @@ const _ = ( txt: string, vals: any = null, plural = false ) => {
 
 const COLL_SYSTEM_DOMAINS = "system_domains";
 const COLL_SYSTEM_THEMES = "system_themes";
+const COLL_USERS = "users";
 
 /*=== f2c_start __file_header === */
-import { keys_filter, merge, set_attr, mkid, challenge_create } from '../../liwe/utils';
+import { keys_filter, merge, set_attr, mkid, challenge_create, sha512 } from '../../liwe/utils';
 import { session_get, session_set_val } from '../session/methods';
 import { Session } from '../session/types';
 import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_find_all, adb_find_one, adb_collection_init, adb_del_one } from '../../liwe/db/arango';
@@ -33,7 +34,7 @@ import { send_mail } from '../../liwe/mail';
 import { perm_available } from '../../liwe/auth';
 import { User } from '../user/types';
 import { user_get } from '../user/methods';
-import { generate_domain_segment_code } from './utils';
+import { generate_domain_segment_code, validate_tier_allocation } from './utils';
 
 type Permission = {
 	name: string,
@@ -247,6 +248,176 @@ export const post_system_admin_domain_create_root = async ( req: ILRequest, name
 
 	return responseSuccess( domain );
 	/*=== f2c_end post_system_admin_domain_create_root ===*/
+};
+// }}}
+
+// {{{ post_system_domain_subdomain_create ( req: ILRequest, name: string, tiers_allocated: number ): Promise<SystemDomain>
+/**
+ * Creates a subdomain and auto-provisions an admin user for it.
+ * Requires system.multi-tier.create_sub permission.
+ *
+ * @param name - the subdomain name [req]
+ * @param tiers_allocated - the number of tiers to allocate to this subdomain [req]
+ *
+ * @return domain: SystemDomain
+ */
+export const post_system_domain_subdomain_create = async ( req: ILRequest, name: string, tiers_allocated: number ): Promise<LiWEResponse<SystemDomain>> => {
+	/*=== f2c_start post_system_domain_subdomain_create ===*/
+	// Get parent domain (user's current domain)
+	const parent_domain: SystemDomain = await system_domain_get_by_session( req );
+
+	if ( !parent_domain ) {
+		return responseError( 'Parent domain not found or is invalid' );
+	}
+
+	// Validate tier allocation
+	const validation = validate_tier_allocation( parent_domain, tiers_allocated );
+	if ( !validation.success ) {
+		return responseError( validation.error );
+	}
+
+	// Generate unique code segment and form new domain code
+	const code_segment = generate_domain_segment_code();
+	const new_domain_code = `${ parent_domain.code }:${ code_segment }`;
+
+	// Create the subdomain
+	const domain: SystemDomain = {
+		id: mkid( "dom" ),
+		code: new_domain_code,
+		name,
+		visible: true,
+		total_max_tiers: tiers_allocated,
+		tiers_allocated: 0,
+		id_created_by: req.user.id
+	};
+
+	await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, domain );
+
+	// Update parent's tiers_allocated
+	parent_domain.tiers_allocated = ( parent_domain.tiers_allocated || 0 ) + tiers_allocated;
+	await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, parent_domain );
+
+	// Auto-provision admin user for the new subdomain
+	const admin_username = `${ new_domain_code }-admin`;
+	const admin_email = `${ new_domain_code }-admin@example.com`;
+	const admin_password = sha512( mkid( 'pwd' ) );
+
+	const admin_user: User = {
+		id: mkid( 'user' ),
+		domain: new_domain_code,
+		username: admin_username,
+		email: admin_email,
+		password: admin_password,
+		enabled: true,
+		language: req.user.language || 'en',
+		perms: [ "system.multi-tier.create_sub" ]
+	};
+
+	await adb_record_add( req.db, COLL_USERS, admin_user );
+
+	return responseSuccess( domain );
+	/*=== f2c_end post_system_domain_subdomain_create ===*/
+};
+// }}}
+
+// {{{ get_system_domain_subdomain_list_managed ( req: ILRequest, deep?: boolean ): Promise<SystemDomain[]>
+/**
+ * Lists all domains managed by the current user (own domain + subdomains).
+ * Requires system.multi-tier.create_sub permission.
+ *
+ * @param deep - if true, returns all nested subdomains; if false, only direct children [default: true] [opt]
+ *
+ * @return domains: SystemDomain
+ */
+export const get_system_domain_subdomain_list_managed = async ( req: ILRequest, deep: boolean = true ): Promise<LiWEResponse<SystemDomain[]>> => {
+	/*=== f2c_start get_system_domain_subdomain_list_managed ===*/
+	const user_domain_code = req.user.domain;
+
+	let domains: SystemDomain[] = [];
+
+	if ( deep ) {
+		// Return own domain + all nested subdomains
+		domains = await adb_query_all(
+			req.db,
+			`FOR sd IN system_domains
+			FILTER sd.code == @domain_code OR STARTS_WITH(sd.code, CONCAT(@domain_code, ":"))
+			SORT sd.code
+			RETURN sd`,
+			{ domain_code: user_domain_code }
+		);
+	} else {
+		// Return own domain + only direct children
+		const own_domain = await system_domain_get_by_code( user_domain_code );
+		domains.push( own_domain );
+
+		// Get direct children (code matches pattern: user_domain:segment without additional colons)
+		const children = await adb_query_all(
+			req.db,
+			`FOR sd IN system_domains
+			FILTER STARTS_WITH(sd.code, CONCAT(@domain_code, ":"))
+			AND LENGTH(SPLIT(sd.code, ":")) == @expected_depth
+			SORT sd.code
+			RETURN sd`,
+			{
+				domain_code: user_domain_code,
+				expected_depth: user_domain_code.split( ":" ).length + 1
+			}
+		);
+
+		domains = domains.concat( children );
+	}
+
+	return responseSuccess( domains );
+	/*=== f2c_end get_system_domain_subdomain_list_managed ===*/
+};
+// }}}
+
+// {{{ post_system_domain_user_assign_role ( req: ILRequest, id_user: string, role: string ): Promise<boolean>
+/**
+ * Assigns a role (multi-tier or user) to a user within the domain hierarchy.
+ * Requires system.multi-tier.create_sub permission.
+ *
+ * @param id_user - the user ID to assign the role to [req]
+ * @param role - the role to assign: 'multi-tier' or 'user' [req]
+ *
+ * @return success: boolean
+ */
+export const post_system_domain_user_assign_role = async ( req: ILRequest, id_user: string, role: string ): Promise<LiWEResponse<boolean>> => {
+	/*=== f2c_start post_system_domain_user_assign_role ===*/
+	// Validate role
+	if ( role !== 'multi-tier' && role !== 'user' ) {
+		return responseError( 'Invalid role. Must be either "multi-tier" or "user"' );
+	}
+
+	// Get target user
+	const target_user: User = await user_get( id_user );
+	if ( !target_user ) {
+		return responseError( 'User not found' );
+	}
+
+	// Check if target user is within current user's domain hierarchy
+	const current_user_domain = req.user.domain;
+	const target_user_domain = target_user.domain;
+
+	if ( target_user_domain !== current_user_domain && !target_user_domain.startsWith( `${ current_user_domain }:` ) ) {
+		return responseError( 'Target user is not within your domain hierarchy' );
+	}
+
+	// Copy user perms
+	let perms = [ ...target_user.perms || [] ];
+
+	// remove the `syste.multi-tier.create_sub` if present
+	perms = perms.filter( ( p ) => p != 'system.multi-tier.create_sub' );
+
+
+	// Update user permissions based on role
+	if ( role === 'multi-tier' ) perms.push( 'system.multi_tier.create_sub' );
+	target_user.perms = perms;
+
+	await adb_record_add( req.db, COLL_USERS, target_user );
+
+	return responseSuccess( true );
+	/*=== f2c_end post_system_domain_user_assign_role ===*/
 };
 // }}}
 
