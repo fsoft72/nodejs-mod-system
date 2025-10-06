@@ -123,7 +123,15 @@ export const post_system_domain_set = async ( req: ILRequest, code: string ): Pr
  */
 export const post_system_admin_domain_add = async ( req: ILRequest, code: string, name: string, visible?: boolean ): Promise<LiWEResponse<SystemDomain>> => {
 	/*=== f2c_start post_system_admin_domain_add ===*/
-	const dom: SystemDomain = { code: code.toLowerCase(), name, visible, id: mkid( "system" ) };
+	const dom: SystemDomain = {
+		code: code.toLowerCase(),
+		name,
+		visible,
+		id: mkid( "system" ),
+		total_max_tiers: 1, // Default for backward compatibility
+		tiers_allocated: 0,
+		id_created_by: req.user?.id
+	};
 	const sd: SystemDomain = await system_domain_get_by_code( code );
 	const err = { message: 'Domain already exists' };
 
@@ -458,6 +466,70 @@ export const post_system_domain_user_assign_role = async ( req: ILRequest, id_us
 
 	return responseSuccess( true );
 	/*=== f2c_end post_system_domain_user_assign_role ===*/
+};
+// }}}
+
+// {{{ patch_system_domain_update_tiers ( req: ILRequest, id_domain: string, total_max_tiers: number ): Promise<SystemDomain>
+/**
+ * Updates the total_max_tiers for a domain.
+ * Can be called by system.admin or by the user who created the domain (multi-tier with id_created_by match).
+ *
+ * @param id_domain - the domain ID to update [req]
+ * @param total_max_tiers - the new total_max_tiers value [req]
+ *
+ * @return domain: SystemDomain
+ */
+export const patch_system_domain_update_tiers = async ( req: ILRequest, id_domain: string, total_max_tiers: number ): Promise<LiWEResponse<SystemDomain>> => {
+	/*=== f2c_start patch_system_domain_update_tiers ===*/
+	// Get the domain to update
+	const domain: SystemDomain = await system_domain_get_by_id( id_domain );
+	if ( !domain ) {
+		return responseError( 'Domain with code \'...\' not found' );
+	}
+
+	// Check permissions: must be system.admin OR the creator of this domain
+	const is_admin = perm_available( req.user, [ 'system.admin' ] );
+	const is_creator = domain.id_created_by === req.user.id;
+
+	if ( !is_admin && !is_creator ) {
+		return responseError( 'You do not have permission to modify this domain' );
+	}
+
+	// Cannot decrease below currently allocated tiers
+	const current_allocated = domain.tiers_allocated || 0;
+	if ( total_max_tiers < current_allocated ) {
+		return responseError( `Cannot reduce total_max_tiers below currently allocated tiers (${ current_allocated } allocated)` );
+	}
+
+	// Store old value for parent update calculation
+	const old_total_max_tiers = domain.total_max_tiers || 0;
+
+	// If not a root domain, validate against parent's budget
+	const parent_code = get_parent_domain_code( domain.code );
+	if ( parent_code ) {
+		const parent_domain: SystemDomain = await system_domain_get_by_code( parent_code );
+		if ( !parent_domain ) {
+			return responseError( 'Parent domain not found or is invalid' );
+		}
+
+		// Validate with the current domain's old value accounted for
+		const validation = validate_tier_allocation( parent_domain, total_max_tiers, old_total_max_tiers );
+		if ( !validation.success ) {
+			return responseError( validation.error );
+		}
+
+		// Update parent's tiers_allocated
+		const tier_difference = total_max_tiers - old_total_max_tiers;
+		parent_domain.tiers_allocated = ( parent_domain.tiers_allocated || 0 ) + tier_difference;
+		await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, parent_domain );
+	}
+
+	// Update the domain
+	domain.total_max_tiers = total_max_tiers;
+	await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, domain );
+
+	return responseSuccess( domain );
+	/*=== f2c_end patch_system_domain_update_tiers ===*/
 };
 // }}}
 
@@ -836,6 +908,7 @@ export const system_db_init = async ( liwe: ILiWE, ): Promise<boolean> => {
 		{ type: "persistent", fields: [ "id" ], unique: true },
 		{ type: "persistent", fields: [ "code" ], unique: true },
 		{ type: "persistent", fields: [ "visible" ], unique: false },
+		{ type: "persistent", fields: [ "id_created_by" ], unique: false },
 	], { drop: false } );
 
 	await adb_collection_init( liwe.db, COLL_SYSTEM_THEMES, [
@@ -850,6 +923,30 @@ export const system_db_init = async ( liwe: ILiWE, ): Promise<boolean> => {
 	if ( !sd ) {
 		sd = { id: mkid( "system" ), code: domain, name: "Default domain", visible: true };
 		await adb_record_add( liwe.db, COLL_SYSTEM_DOMAINS, sd );
+	}
+
+	// Migration: Add new fields to existing domains
+	const all_domains: SystemDomain[] = await adb_find_all( liwe.db, COLL_SYSTEM_DOMAINS, {} );
+	for ( const existing_domain of all_domains ) {
+		let needs_update = false;
+
+		// Check if domain needs migration
+		if ( existing_domain.total_max_tiers === undefined || existing_domain.total_max_tiers === null ) {
+			// Root domains (no ":") get total_max_tiers: 1
+			// Subdomains get total_max_tiers: 0
+			const is_root = !existing_domain.code.includes( ":" );
+			existing_domain.total_max_tiers = is_root ? 1 : 0;
+			needs_update = true;
+		}
+
+		if ( existing_domain.tiers_allocated === undefined ) {
+			existing_domain.tiers_allocated = 0;
+			needs_update = true;
+		}
+
+		if ( needs_update ) {
+			await adb_record_add( liwe.db, COLL_SYSTEM_DOMAINS, existing_domain );
+		}
 	}
 	/*=== f2c_end system_db_init ===*/
 
