@@ -8,6 +8,7 @@ const permissions = {
 	"system.admin": "The super user permission to do everything",
 	"system.domain": "The user can operate on system domains",
 	"system.theme": "The user can manage system themes",
+	"system.multi-tier.create_sub": "Ability to create subdomains and assign roles within their domain hierarchy",
 };
 
 export default permissions;
