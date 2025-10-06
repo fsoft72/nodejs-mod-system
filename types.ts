@@ -13,6 +13,12 @@ export interface SystemDomain {
 	name: string;
 	/** If the domain is visible */
 	visible?: boolean;
+	/** The maximum number of tiers that can be allocated to direct children */
+	total_max_tiers?: number | null;
+	/** The sum of total_max_tiers values of all direct children */
+	tiers_allocated?: number;
+	/** The user ID who created this domain */
+	id_created_by?: string;
 }
 
 export const SystemDomainKeys = {
@@ -20,6 +26,9 @@ export const SystemDomainKeys = {
 	'code': { type: 'string', priv: false },
 	'name': { type: 'string', priv: false },
 	'visible': { type: 'boolean', priv: true },
+	'total_max_tiers': { type: 'number', priv: false },
+	'tiers_allocated': { type: 'number', priv: false },
+	'id_created_by': { type: 'string', priv: false },
 };
 
 /** SystemTheme */
