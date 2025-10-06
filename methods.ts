@@ -32,7 +32,7 @@ import { adb_record_add, adb_query_all, adb_query_one, adb_prepare_filters, adb_
 import { send_mail } from '../../liwe/mail';
 import { perm_available } from '../../liwe/auth';
 import { User } from '../user/types';
-import { user_get } from '../user/methods';
+import { post_user_admin_add, user_get } from '../user/methods';
 import { generate_domain_segment_code, validate_tier_allocation, get_parent_domain_code } from './utils';
 import { USER_EVENT_PRE_DELETE } from '../user/events';
 import { liwe_event_emit } from '../../liwe/events';
@@ -357,11 +357,11 @@ export const post_system_domain_subdomain_create = async ( req: ILRequest, name:
 		email: admin_email,
 		password: admin_password,
 		enabled: true,
-		language: req.user.language || 'en',
+		language: 'en',
 		perms: [ "system.multi-tier.create_sub" ]
 	};
 
-	await adb_record_add( req.db, COLL_USERS, admin_user );
+	const res = await post_user_admin_add( req, admin_user.email, admin_user.password, admin_user.username, 'admin', 'tier', admin_user.perms, true, 'en' );
 
 	return responseSuccess( domain );
 	/*=== f2c_end post_system_domain_subdomain_create ===*/
