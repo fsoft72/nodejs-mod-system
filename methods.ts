@@ -33,6 +33,7 @@ import { send_mail } from '../../liwe/mail';
 import { perm_available } from '../../liwe/auth';
 import { User } from '../user/types';
 import { user_get } from '../user/methods';
+import { generate_domain_segment_code } from './utils';
 
 type Permission = {
 	name: string,
@@ -207,6 +208,45 @@ export const get_system_admin_domains_list = async ( req: ILRequest, ): Promise<
 
 	return responseSuccess( sds );
 	/*=== f2c_end get_system_admin_domains_list ===*/
+};
+// }}}
+
+// {{{ post_system_admin_domain_create_root ( req: ILRequest, name: string, total_max_tiers: number ): Promise<SystemDomain>
+/**
+ * Creates a new root domain with tier allocation capability.
+ * Only users with system.admin permission can create root domains.
+ *
+ * @param name - the domain name [req]
+ * @param total_max_tiers - the maximum number of tiers that can be allocated to direct children [req]
+ *
+ * @return domain: SystemDomain
+ */
+export const post_system_admin_domain_create_root = async ( req: ILRequest, name: string, total_max_tiers: number ): Promise<LiWEResponse<SystemDomain>> => {
+	/*=== f2c_start post_system_admin_domain_create_root ===*/
+	// Generate unique domain code
+	const code = generate_domain_segment_code();
+
+	// Check if domain code already exists (extremely unlikely but good to verify)
+	const existing_domain: SystemDomain = await system_domain_get_by_code( code );
+	if ( existing_domain ) {
+		return responseError( 'Domain code already exists, please try again' );
+	}
+
+	// Create the root domain
+	const domain: SystemDomain = {
+		id: mkid( "dom" ),
+		code: code,
+		name,
+		visible: true,
+		total_max_tiers,
+		tiers_allocated: 0,
+		id_created_by: req.user.id
+	};
+
+	await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, domain );
+
+	return responseSuccess( domain );
+	/*=== f2c_end post_system_admin_domain_create_root ===*/
 };
 // }}}
 

@@ -14,7 +14,7 @@ import {
 	// endpoints function
 	delete_system_admin_domain_del, get_system_admin_domains_list, get_system_admin_permissions_list, get_system_domain_create_invite, get_system_domain_current,
 	get_system_domains_list, get_system_theme_get, get_system_uptime, patch_system_admin_domain_update, patch_system_admin_reset_id,
-	patch_system_admin_theme_set, post_system_admin_domain_add, post_system_domain_set, post_system_email_test,
+	patch_system_admin_theme_set, post_system_admin_domain_add, post_system_admin_domain_create_root, post_system_domain_set, post_system_email_test,
 	// functions
 	system_db_init, system_domain_get_by_code, system_domain_get_by_id, system_domain_get_by_session, system_domain_get_default,
 	system_permissions_register,
@@ -95,9 +95,21 @@ export const init = ( liwe: ILiWE ) => {
 	} );
 
 	app.get ( '/api/system/admin/domains/list', perms( [ "system.domain" ] ),  async ( req: ILRequest, res: ILResponse ) => {
-		
+
 
 		const response = await get_system_admin_domains_list ( req, );
+		sendResponse ( res, response );
+	} );
+
+	app.post ( '/api/system/admin/domain/create_root', perms( [ "system.admin" ] ),  async ( req: ILRequest, res: ILResponse ) => {
+		const { name, total_max_tiers, ___errors } = typed_dict( req.body, [
+			{ name: "name", type: "string", required: true },
+			{ name: "total_max_tiers", type: "number", required: true }
+		] );
+
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
+
+		const response = await post_system_admin_domain_create_root ( req, name, total_max_tiers);
 		sendResponse ( res, response );
 	} );
 
