@@ -23,7 +23,6 @@ const _ = ( txt: string, vals: any = null, plural = false ) => {
 
 const COLL_SYSTEM_DOMAINS = "system_domains";
 const COLL_SYSTEM_THEMES = "system_themes";
-const COLL_USERS = "users";
 
 /*=== f2c_start __file_header === */
 import { keys_filter, merge, set_attr, mkid, challenge_create, sha512 } from '../../liwe/utils';
@@ -34,7 +33,9 @@ import { send_mail } from '../../liwe/mail';
 import { perm_available } from '../../liwe/auth';
 import { User } from '../user/types';
 import { user_get } from '../user/methods';
-import { generate_domain_segment_code, validate_tier_allocation } from './utils';
+import { generate_domain_segment_code, validate_tier_allocation, get_parent_domain_code } from './utils';
+import { USER_EVENT_PRE_DELETE } from '../user/events';
+import { liwe_event_emit } from '../../liwe/events';
 
 type Permission = {
 	name: string,
@@ -187,6 +188,45 @@ export const delete_system_admin_domain_del = async ( req: ILRequest, id?: strin
 
 	if ( !sd ) return responseError( err.message );
 
+	// Find all child domains (domains that start with this domain's code + ":")
+	const child_domains: SystemDomain[] = await adb_query_all(
+		req.db,
+		`FOR d IN system_domains
+		FILTER STARTS_WITH(d.code, CONCAT(@domain_code, ":"))
+		RETURN d`,
+		{ domain_code: sd.code }
+	);
+
+	// Collect all domain codes to delete (including the main domain)
+	const domains_to_delete = [ sd, ...child_domains ];
+	const domain_codes = domains_to_delete.map( d => d.code );
+
+	// Find and delete all users in these domains
+	const users: User[] = await adb_query_all(
+		req.db,
+		`FOR u IN users
+		FILTER u.domain IN @domain_codes
+		RETURN u`,
+		{ domain_codes }
+	);
+
+	// Trigger USER_EVENT_PRE_DELETE for each user
+	for ( const user of users ) await liwe_event_emit( req, USER_EVENT_PRE_DELETE, user );
+
+	// Delete all child domains
+	for ( const child_domain of child_domains ) await adb_del_one( req.db, COLL_SYSTEM_DOMAINS, child_domain.id );
+
+	// Update parent's tiers_allocated if this is not a root domain
+	const parent_code = get_parent_domain_code( sd.code );
+	if ( parent_code ) {
+		const parent_domain: SystemDomain = await system_domain_get_by_code( parent_code );
+		if ( parent_domain && sd.total_max_tiers ) {
+			parent_domain.tiers_allocated = ( parent_domain.tiers_allocated || 0 ) - sd.total_max_tiers;
+			await adb_record_add( req.db, COLL_SYSTEM_DOMAINS, parent_domain );
+		}
+	}
+
+	// Finally, delete the main domain
 	await adb_del_one( req.db, COLL_SYSTEM_DOMAINS, sd.id );
 
 	return responseSuccess( sd.id );
