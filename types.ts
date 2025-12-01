@@ -6,20 +6,25 @@
 /** SystemDomain */
 export interface SystemDomain {
 	/** the main id field */
-	id: string;
+	id?: string;
 	/** The domain unique code */
-	code: string;
+	code?: string;
 	/** The domain name */
-	name: string;
+	name?: string;
 	/** If the domain is visible */
 	visible?: boolean;
+	/** The sum of `total_max_tiers` values of all **direct children** of this domain.  */
+	tiers_allocated?: number;
+	total_max_tiers?: number;
 }
 
 export const SystemDomainKeys = {
 	'id': { type: 'string', priv: false },
 	'code': { type: 'string', priv: false },
 	'name': { type: 'string', priv: false },
-	'visible': { type: 'boolean', priv: true },
+	'visible': { type: 'boolean', priv: false },
+	'tiers_allocated': { type: 'number', priv: false },
+	'total_max_tiers': { type: 'number', priv: false },
 };
 
 /** SystemTheme */
@@ -41,13 +46,17 @@ export const SystemThemeKeys = {
 /** SystemDomainAdmin */
 export interface SystemDomainAdmin {
 	/** the main id field */
-	id: string;
+	id?: string;
 	/** The domain unique code */
-	code: string;
+	code?: string;
 	/** The domain name */
-	name: string;
+	name?: string;
 	/** If the domain is visible */
-	visible: boolean;
+	visible?: boolean;
+	/** Number of allocated tiers (required) */
+	tiers_allocated?: number;
+	/** Total tiers the domain can create (required) */
+	total_max_tiers?: number;
 }
 
 export const SystemDomainAdminKeys = {
@@ -55,6 +64,8 @@ export const SystemDomainAdminKeys = {
 	'code': { type: 'string', priv: false },
 	'name': { type: 'string', priv: false },
 	'visible': { type: 'boolean', priv: false },
+	'tiers_allocated': { type: 'number', priv: false },
+	'total_max_tiers': { type: 'number', priv: false },
 };
 
 /** SystemDomainPublic */

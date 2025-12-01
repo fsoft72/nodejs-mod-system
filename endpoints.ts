@@ -13,8 +13,9 @@ import { LiWEResponse, sendParametersError, sendResponse } from '../../liwe/resp
 import {
 	// endpoints function
 	delete_system_admin_domain_del, get_system_admin_domains_list, get_system_admin_permissions_list, get_system_domain_create_invite, get_system_domain_current,
-	get_system_domains_list, get_system_theme_get, get_system_uptime, patch_system_admin_domain_update, patch_system_admin_reset_id,
-	patch_system_admin_theme_set, post_system_admin_domain_add, post_system_domain_set, post_system_email_test,
+	get_system_domain_subdomain_list_managed, get_system_domains_list, get_system_theme_get, get_system_uptime, patch_system_admin_domain_update,
+	patch_system_admin_reset_id, patch_system_admin_theme_set, post_system_admin_domain_add, post_system_domain_set, post_system_domain_subdomain_create,
+	post_system_domain_user_assign_role, post_system_email_test,
 	// functions
 	system_db_init, system_domain_get_by_code, system_domain_get_by_id, system_domain_get_by_session, system_domain_get_default,
 	system_permissions_register,
@@ -173,6 +174,41 @@ export const init = ( liwe: ILiWE ) => {
 		
 
 		const response = await get_system_uptime ( req, );
+		sendResponse ( res, response );
+	} );
+
+	app.post ( '/api/system/domain/subdomain/create', perms( [ "system.multi-tier.create-sub" ] ),  async ( req: ILRequest, res: ILResponse ) => {
+		const { name, tiers_allocated, ___errors } = typed_dict( req.body, [
+			{ name: "name", type: "string", required: true },
+			{ name: "tiers_allocated", type: "number", required: true, default: 0 }
+		] );
+
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
+
+		const response = await post_system_domain_subdomain_create ( req, name, tiers_allocated);
+		sendResponse ( res, response );
+	} );
+
+	app.get ( '/api/system/domain/subdomain/list_managed', perms( [ "is-logged" ] ),  async ( req: ILRequest, res: ILResponse ) => {
+		const { deep, ___errors } = typed_dict( req.query as any, [
+			{ name: "deep", type: "boolean" }
+		] );
+
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
+
+		const response = await get_system_domain_subdomain_list_managed ( req, deep);
+		sendResponse ( res, response );
+	} );
+
+	app.post ( '/api/system/domain/user/assign_role', perms( [ "system.role_change" ] ),  async ( req: ILRequest, res: ILResponse ) => {
+		const { id_user, role, ___errors } = typed_dict( req.body, [
+			{ name: "id_user", type: "string", required: true },
+			{ name: "role", type: "string", required: true }
+		] );
+
+		if ( ___errors.length ) return sendParametersError ( res, ___errors );
+
+		const response = await post_system_domain_user_assign_role ( req, id_user, role);
 		sendResponse ( res, response );
 	} );
 

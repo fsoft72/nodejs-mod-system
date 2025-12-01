@@ -68,7 +68,7 @@ const theme_get = async ( req: ILRequest, clean: boolean = false ) => {
  * @return domains: SystemDomain
  *
  */
-export const get_system_domains_list = async ( req: ILRequest, ): Promise<LiWEResponse<SystemDomain[]>> => {
+export const get_system_domains_list = async ( req: ILRequest,  ): Promise<LiWEResponse<SystemDomain[]>> => {
 	/*=== f2c_start get_system_domains_list ===*/
 	const sds: SystemDomain[] = await adb_query_all( req.db, `FOR sd IN system_domains FILTER sd.visible == true SORT sd.name RETURN sd` );
 
@@ -201,7 +201,7 @@ export const delete_system_admin_domain_del = async ( req: ILRequest, id?: strin
  * @return domains: SystemDomainAdmin
  *
  */
-export const get_system_admin_domains_list = async ( req: ILRequest, ): Promise<LiWEResponse<SystemDomainAdmin[]>> => {
+export const get_system_admin_domains_list = async ( req: ILRequest,  ): Promise<LiWEResponse<SystemDomainAdmin[]>> => {
 	/*=== f2c_start get_system_admin_domains_list ===*/
 	const sds: SystemDomainAdmin[] = await adb_find_all( req.db, COLL_SYSTEM_DOMAINS, {}, SystemDomainAdminKeys, { sort: [ { field: 'name' } ] } );
 
@@ -241,7 +241,7 @@ export const patch_system_admin_theme_set = async ( req: ILRequest, changes?: an
  * @return theme: SystemTheme
  *
  */
-export const get_system_theme_get = async ( req: ILRequest, ): Promise<LiWEResponse<SystemTheme>> => {
+export const get_system_theme_get = async ( req: ILRequest,  ): Promise<LiWEResponse<SystemTheme>> => {
 	/*=== f2c_start get_system_theme_get ===*/
 	const theme: SystemTheme = await theme_get( req, true );
 
@@ -324,7 +324,7 @@ export const post_system_email_test = async ( req: ILRequest, email: string ): P
  * @return permissions: object
  *
  */
-export const get_system_admin_permissions_list = async ( req: ILRequest, ): Promise<LiWEResponse<object>> => {
+export const get_system_admin_permissions_list = async ( req: ILRequest,  ): Promise<LiWEResponse<object>> => {
 	/*=== f2c_start get_system_admin_permissions_list ===*/
 
 	// if the user has system.admin, return all permissions
@@ -360,7 +360,7 @@ export const get_system_admin_permissions_list = async ( req: ILRequest, ): Prom
  * @return domain: SystemDomainPublic
  *
  */
-export const get_system_domain_current = async ( req: ILRequest, ): Promise<LiWEResponse<SystemDomainPublic>> => {
+export const get_system_domain_current = async ( req: ILRequest,  ): Promise<LiWEResponse<SystemDomainPublic>> => {
 	/*=== f2c_start get_system_domain_current ===*/
 	let domain: SystemDomain;
 
@@ -428,13 +428,88 @@ export const get_system_domain_create_invite = async ( req: ILRequest, id_domain
  * @return uptime: number
  *
  */
-export const get_system_uptime = async ( req: ILRequest, ): Promise<LiWEResponse<number>> => {
+export const get_system_uptime = async ( req: ILRequest,  ): Promise<LiWEResponse<number>> => {
 	/*=== f2c_start get_system_uptime ===*/
 	const d = new Date().getTime();
 	const uptime = Math.floor( ( d - _liwe.startDate ) / 1000 );
 
 	return responseSuccess( uptime );
 	/*=== f2c_end get_system_uptime ===*/
+};
+// }}}
+
+// {{{ post_system_domain_subdomain_create ( req: ILRequest, name: string, tiers_allocated: numbercback: LCBack = null ): Promise<SystemDomain>
+/**
+ *
+ * * - **1. Authentication:** Check for `domain.multi-tier.create_sub` in `req.user.perms`. 
+ *  * - **2. Get Parent Domain:** Parent domain is `req.user.domain`. 
+ *  * - **3. Tier Validation:** Validate that `tiers_allocated <= (parent.total_max_tiers - parent.tiers_allocated)`. 
+ *  * - **4. Domain Creation:** Generate unique code segment: 
+ *  *   - form `new_domain_code` as `req.user.domain:generated_code`
+ *  *   - insert new domain with `total_max_tiers: tiers_allocated`, `tiers_allocated: 0`, `name: name`
+ *  * - **5. Update Parent:** Update parent domain's `tiers_allocated += tiers_allocated`. 
+ *  * - **6. User Auto-Provisioning:** Create new user: 
+ *  *   - Username: `${new_domain_code}-admin`
+ *  *   - Email: `${new_domain_code}-admin@example.com`
+ *  *   - Domain: `new_domain_code`
+ *  *   - Permissions: `["domain.multi-tier.create-sub"]`
+ *  *   - Password: `sha512(mkid('pwd'))`
+ *  *   - Enabled: `true`
+ *  *   - Language: `req.user.language`
+ *
+ * @param name - Sub domain name (required) [req]
+ * @param tiers_allocated - Number of tiers that can be allocated (required) [req]
+ *
+ * @return subdomain: SystemDomain
+ *
+ */
+export const post_system_domain_subdomain_create = async ( req: ILRequest, name: string, tiers_allocated: number ): Promise<LiWEResponse<SystemDomain>> => {
+	/*=== f2c_start post_system_domain_subdomain_create ===*/
+
+	/*=== f2c_end post_system_domain_subdomain_create ===*/
+};
+// }}}
+
+// {{{ get_system_domain_subdomain_list_managed ( req: ILRequest, deep?: booleancback: LCBack = null ): Promise<SystemDomainAdmin[]>
+/**
+ *
+ * - **1. Context:** Use the current user's domain: `user_domain_code = req.user.domain`
+ * - **2. Database Query:** Query `COLL_SYSTEM_DOMAINS` for all records where: 
+ *   - (a) `code` equals `user_domain_code` (own domain), OR (b) `code` start
+ * - **3. Return:** The list of matching domain objects.
+ *
+ * @param deep - If list should return all codes [opt]
+ *
+ * @return subdomains: SystemDomainAdmin
+ *
+ */
+export const get_system_domain_subdomain_list_managed = async ( req: ILRequest, deep?: boolean ): Promise<LiWEResponse<SystemDomainAdmin[]>> => {
+	/*=== f2c_start get_system_domain_subdomain_list_managed ===*/
+
+	/*=== f2c_end get_system_domain_subdomain_list_managed ===*/
+};
+// }}}
+
+// {{{ post_system_domain_user_assign_role ( req: ILRequest, id_user: string, role: stringcback: LCBack = null ): Promise<boolean>
+/**
+ *
+ *  * Allows subdomain admins to assign or remove `multi-tier` user permission to a user.
+ *  * If `multi-tier` is set to a user, he/she will be able to set new sub tiers.
+ *  * - **1. Authorization:** Ensure `req.user` has `system.multi-tier.create-sub`
+ *  * - **2. Get Target User:** Retrieve the user with `id_user` 
+ *  * - **3. Scope Check:** Verify that the target user's `domain` field either equals `req.user.domain` or starts with `req.user.domain:` (is in a subdomain). 
+ *  * - **4. Update User:** Set the target user's `perms` array: `multi-tier` maps to `["system.multi-tier.create-sub"]`, and `user` maps to an empty array `[]`
+ *
+ * @param id_user - The user to assign role to  [req]
+ * @param role - The user role (`multi-tier | user`) [req]
+ *
+ * @return OK: boolean
+ *
+ */
+export const post_system_domain_user_assign_role = async ( req: ILRequest, id_user: string, role: string ): Promise<LiWEResponse<boolean>> => {
+	/*=== f2c_start post_system_domain_user_assign_role ===*/
+
+	/*=== f2c_end post_system_domain_user_assign_role ===*/
 };
 // }}}
 
@@ -447,7 +522,7 @@ export const get_system_uptime = async ( req: ILRequest, ): Promise<LiWEResponse
  * @return : SystemDomain
  *
  */
-export const system_domain_get_default = async (): Promise<SystemDomain> => {
+export const system_domain_get_default = async ( ): Promise<SystemDomain> => {
 	/*=== f2c_start system_domain_get_default ===*/
 	const sd: SystemDomain = await system_domain_get_by_code( _liwe.cfg.app.domain );
 
@@ -577,20 +652,21 @@ export const system_permissions_register = async ( module: string, perms: any, )
  *
  */
 export const system_db_init = async ( liwe: ILiWE, ): Promise<boolean> => {
-	_liwe = liwe;
+		_liwe = liwe;
 
-	system_permissions_register( 'system', _module_perms );
+		system_permissions_register( 'system', _module_perms );
 
-	await adb_collection_init( liwe.db, COLL_SYSTEM_DOMAINS, [
-		{ type: "persistent", fields: [ "id" ], unique: true },
-		{ type: "persistent", fields: [ "code" ], unique: true },
-		{ type: "persistent", fields: [ "visible" ], unique: false },
-	], { drop: false } );
+		await adb_collection_init( liwe.db, COLL_SYSTEM_DOMAINS, [
+			{ type: "persistent", fields: [ "id" ], unique: true },
+			{ type: "persistent", fields: [ "code" ], unique: true },
+			{ type: "persistent", fields: [ "visible" ], unique: false },
+			{ type: "persistent", fields: [ "total_max_tiers" ], unique: true },
+		], { drop: false } );
 
-	await adb_collection_init( liwe.db, COLL_SYSTEM_THEMES, [
-		{ type: "persistent", fields: [ "id" ], unique: true },
-		{ type: "persistent", fields: [ "domain" ], unique: true },
-	], { drop: false } );
+		await adb_collection_init( liwe.db, COLL_SYSTEM_THEMES, [
+			{ type: "persistent", fields: [ "id" ], unique: true },
+			{ type: "persistent", fields: [ "domain" ], unique: true },
+		], { drop: false } );
 
 	/*=== f2c_start system_db_init ===*/
 	let domain = liwe.cfg?.app?.domain || 'default';
